@@ -1,568 +1,542 @@
-import datetime
-import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
-
-# グラフ描画用ライブラリ
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-# 高DPI対応（Windows）
-try:
-    from ctypes import windll
-
-    windll.shcore.SetProcessDpiAwareness(1)
-except:
-    pass
-
-# --- カラー定義 (ダークモード) ---
-BG_MAIN = "#121212"  # 背景
-BG_PANEL = "#1e1e1e"  # パネル
-FG_TEXT = "#ffffff"  # メインテキスト
-FG_SUB = "#888888"  # サブテキスト
-
-ACCENT_BLUE = "#007bff"
-ACCENT_GREEN = "#28a745"
-ACCENT_RED = "#dc3545"
-ACCENT_YELLOW = "#ffc107"
-ACCENT_PURPLE = "#6f42c1"
-ACCENT_GRAY = "#444444"
-
-
-class MobileSlotCounter:
-
-    def __init__(self, root):
-        self.root = root
-        self.root.title("SLOT COUNTER MOBILE")
-
-        # スマホ縦長解像度に設定 (iPhone 13/14 風 390x844)
-        self.root.geometry("400x800")
-        self.root.resizable(False, False)
-        self.root.configure(bg=BG_MAIN)
-
-        # データ管理
-        self.start_games = 0
-        self.my_games = 0
-        self.use_my_games_for_prob = True
-        self.is_minus_mode = False
-
-        self.roles_config = [
-            {"name": "ベル", "active": True, "color": "#007bff"},
-            {"name": "弱チェリー", "active": True, "color": "#dc3545"},
-            {"name": "強チェリー", "active": True, "color": "#ff3344"},
-            {"name": "弱スイカ", "active": True, "color": "#28a745"},
-            {"name": "強スイカ", "active": True, "color": "#20c997"},
-            {"name": "チャンス目A", "active": True, "color": "#ffc107"},
-            {"name": "チャンス目B", "active": True, "color": "#ff9900"},
-            {"name": "チャンス目C", "active": True, "color": "#e67e22"},
-            {"name": "確定役", "active": True, "color": "#9b59b6"},
-            {"name": "中段チェリー", "active": True, "color": "#8e44ad"},
-        ]
-
-        self.counts = {r["name"]: 0 for r in self.roles_config}
-        self.history = []
-        self.record_history()
-
-        # スタイル設定
-        self.style = ttk.Style()
-        self.style.theme_use("clam")
-        self.style.configure("TNotebook", background=BG_MAIN, borderwidth=0)
-        self.style.configure(
-            "TNotebook.Tab",
-            background=BG_PANEL,
-            foreground=FG_TEXT,
-            padding=[10, 10],
-            font=("Helvetica", 10, "bold"),
-        )
-        self.style.map(
-            "TNotebook.Tab", background=[("selected", ACCENT_BLUE)]
-        )
-
-        self.create_tabs()
-
-    @property
-    def total_games(self):
-        return self.start_games + self.my_games
-
-    @property
-    def calc_base_games(self):
-        return self.my_games if self.use_my_games_for_prob else self.total_games
-
-    def record_history(self):
-        if self.history and self.history[-1]["my_games"] == self.my_games:
-            self.history[-1]["counts"] = self.counts.copy()
-            self.history[-1]["calc_games"] = self.calc_base_games
-        else:
-            self.history.append(
-                {
-                    "my_games": self.my_games,
-                    "total_games": self.total_games,
-                    "calc_games": self.calc_base_games,
-                    "counts": self.counts.copy(),
-                }
-            )
-
-    def create_tabs(self):
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill="both", expand=True)
-
-        self.tab_counter = tk.Frame(self.notebook, bg=BG_MAIN)
-        self.tab_history = tk.Frame(self.notebook, bg=BG_MAIN)
-        self.tab_setting = tk.Frame(self.notebook, bg=BG_MAIN)
-
-        self.notebook.add(self.tab_counter, text=" カウンター ")
-        self.notebook.add(self.tab_history, text=" 確率推移 ")
-        self.notebook.add(self.tab_setting, text=" 設定 ")
-
-        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
-
-        self.setup_counter_tab()
-        self.setup_history_tab()
-        self.setup_setting_tab()
-
-    # ==========================================
-    # カウンター画面 (スマホ特化レイアウト)
-    # ==========================================
-    def setup_counter_tab(self):
-        # 1. 減算モード切替バー（誤操作防止のため最上部へ）
-        mode_bar = tk.Frame(self.tab_counter, bg=BG_MAIN, padx=10, pady=5)
-        mode_bar.pack(fill="x")
-
-        self.btn_minus_mode = tk.Button(
-            mode_bar,
-            text="＋ 加算モード",
-            command=self.toggle_minus_mode,
-            bg=BG_PANEL,
-            fg=ACCENT_GREEN,
-            font=("Helvetica", 10, "bold"),
-            bd=0,
-            pady=6,
-            cursor="hand2",
-        )
-        self.btn_minus_mode.pack(fill="x")
-
-        # 2. ゲーム数表示パネル
-        game_panel = tk.Frame(self.tab_counter, bg=BG_PANEL, padx=12, pady=10)
-        game_panel.pack(fill="x", padx=10, pady=5)
-
-        # サブボタン群
-        top_row = tk.Frame(game_panel, bg=BG_PANEL)
-        top_row.pack(fill="x")
-
-        self.btn_toggle_base = tk.Button(
-            top_row,
-            text="基準: 個人G",
-            command=self.toggle_calc_base,
-            bg=BG_MAIN,
-            fg=ACCENT_YELLOW,
-            font=("Helvetica", 8, "bold"),
-            bd=0,
-            padx=8,
-            pady=3,
-        )
-        self.btn_toggle_base.pack(side="left")
-
-        tk.Button(
-            top_row,
-            text="総G入力",
-            command=self.set_total_game,
-            bg=BG_MAIN,
-            fg=FG_TEXT,
-            font=("Helvetica", 8),
-            bd=0,
-            padx=8,
-            pady=3,
-        ).pack(side="right")
-
-        tk.Button(
-            top_row,
-            text="打ち始めG",
-            command=self.set_start_game,
-            bg=BG_MAIN,
-            fg=FG_TEXT,
-            font=("Helvetica", 8),
-            bd=0,
-            padx=8,
-            pady=3,
-        ).pack(side="right", padx=5)
-
-        # ゲーム数メイン表示
-        disp_frame = tk.Frame(game_panel, bg=BG_PANEL)
-        disp_frame.pack(fill="x", pady=5)
-
-        self.lbl_my_game = tk.Label(
-            disp_frame,
-            text="0 G",
-            font=("Helvetica", 28, "bold"),
-            fg=ACCENT_GREEN,
-            bg=BG_PANEL,
-        )
-        self.lbl_my_game.pack(side="left")
-
-        sub_g_box = tk.Frame(disp_frame, bg=BG_PANEL)
-        sub_g_box.pack(side="right", anchor="e")
-
-        self.lbl_start_game = tk.Label(
-            sub_g_box,
-            text="START : 0 G",
-            font=("Consolas", 9),
-            fg=FG_SUB,
-            bg=BG_PANEL,
-        )
-        self.lbl_start_game.pack(anchor="e")
-
-        self.lbl_total_game = tk.Label(
-            sub_g_box,
-            text="TOTAL : 0 G",
-            font=("Consolas", 11, "bold"),
-            fg=FG_TEXT,
-            bg=BG_PANEL,
-        )
-        self.lbl_total_game.pack(anchor="e")
-
-        # 3. ゲーム数加算ボタン（親指で押しやすい大きなボタン）
-        btn_grid = tk.Frame(game_panel, bg=BG_PANEL)
-        btn_grid.pack(fill="x", pady=(5, 0))
-
-        self.add_game_btns = []
-        add_values = [
-            ("1G", 1, ACCENT_GREEN),
-            ("10G", 10, ACCENT_BLUE),
-            ("50G", 50, ACCENT_YELLOW),
-            ("100G", 100, ACCENT_PURPLE),
-        ]
-
-        for label, val, color in add_values:
-            fg_color = "black" if color == ACCENT_YELLOW else "white"
-            btn = tk.Button(
-                btn_grid,
-                text=f"+{label}",
-                command=lambda v=val: self.add_games_by(v),
-                bg=color,
-                fg=fg_color,
-                font=("Helvetica", 10, "bold"),
-                bd=0,
-                pady=8,
-                cursor="hand2",
-            )
-            btn.pack(side="left", expand=True, fill="x", padx=2)
-            self.add_game_btns.append((btn, label))
-
-        # 4. 子役カウントエリア（スクロール可能 / 大きなタップ領域）
-        self.counter_list_frame = tk.Frame(self.tab_counter, bg=BG_MAIN)
-        self.counter_list_frame.pack(fill="both", expand=True, padx=10, pady=5)
-
-        self.rebuild_counter_ui()
-
-        # 5. フッター
-        footer = tk.Frame(self.tab_counter, bg=BG_MAIN, pady=5)
-        footer.pack(fill="x")
-        tk.Button(
-            footer,
-            text="リセット",
-            command=self.reset_all,
-            bg=ACCENT_GRAY,
-            fg=FG_SUB,
-            font=("Helvetica", 8),
-            bd=0,
-            pady=3,
-        ).pack()
-
-    def rebuild_counter_ui(self):
-        for widget in self.counter_list_frame.winfo_children():
-            widget.destroy()
-
-        self.role_widgets = {}
-        self.role_buttons = {}
-
-        # スクロールエリア（子役が多い場合に対応）
-        canvas = tk.Canvas(
-            self.counter_list_frame,
-            bg=BG_MAIN,
-            highlightthickness=0,
-            bd=0,
-        )
-        scrollbar = ttk.Scrollbar(
-            self.counter_list_frame, orient="vertical", command=canvas.yview
-        )
-        scroll_content = tk.Frame(canvas, bg=BG_MAIN)
-
-        scroll_content.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
-        )
-        canvas.create_window((0, 0), window=scroll_content, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # 子役行の生成（スマホ用に縦幅を広く）
-        for role in self.roles_config:
-            if not role["active"]:
-                continue
-
-            name = role["name"]
-            color = role["color"]
-
-            row = tk.Frame(scroll_content, bg=BG_PANEL, pady=6, padx=10)
-            row.pack(fill="x", pady=3)
-
-            # 左側: 子役名 & 確率
-            info_box = tk.Frame(row, bg=BG_PANEL)
-            info_box.pack(side="left", fill="both", expand=True)
-
-            tk.Label(
-                info_box,
-                text=name,
-                font=("Helvetica", 12, "bold"),
-                fg=color,
-                bg=BG_PANEL,
-                anchor="w",
-            ).pack(anchor="w")
-
-            lbl_info = tk.Label(
-                info_box,
-                text="0 回  (1/----)",
-                font=("Consolas", 10),
-                fg=FG_TEXT,
-                bg=BG_PANEL,
-                anchor="w",
-            )
-            lbl_info.pack(anchor="w")
-            self.role_widgets[name] = lbl_info
-
-            # 右側: 大型カウントボタン (タップしやすいように高さを確保)
-            btn_action = tk.Button(
-                row,
-                text="＋",
-                command=lambda n=name: self.on_count_button_click(n),
-                bg=color if not self.is_minus_mode else ACCENT_RED,
-                fg="white",
-                font=("Helvetica", 16, "bold"),
-                bd=0,
-                width=5,
-                pady=8,
-                cursor="hand2",
-            )
-            btn_action.pack(side="right", padx=5)
-            self.role_buttons[name] = (btn_action, color)
-
-        self.refresh_display()
-
-    # ==========================================
-    # 確率推移（グラフ）
-    # ==========================================
-    def setup_history_tab(self):
-        self.history_frame = tk.Frame(self.tab_history, bg=BG_MAIN)
-        self.history_frame.pack(fill="both", expand=True, padx=5, pady=5)
-        self.chart_canvas = None
-
-    def update_history_graph(self):
-        if self.chart_canvas:
-            self.chart_canvas.get_tk_widget().destroy()
-
-        plt.style.use("dark_background")
-        fig, ax = plt.subplots(figsize=(4, 6), dpi=90)
-        fig.patch.set_facecolor(BG_MAIN)
-        ax.set_facecolor(BG_PANEL)
-
-        games_list = [h["calc_games"] for h in self.history]
-        has_data = False
-
-        for role in self.roles_config:
-            if not role["active"]:
-                continue
-
-            name = role["name"]
-            color = role["color"]
-
-            prob_denominators = []
-            for h in self.history:
-                g = h["calc_games"]
-                c = h["counts"].get(name, 0)
-                prob_denominators.append(g / c if c > 0 and g > 0 else None)
-
-            if any(p is not None for p in prob_denominators):
-                ax.plot(
-                    games_list,
-                    prob_denominators,
-                    marker="o",
-                    label=name,
-                    color=color,
-                    linewidth=2,
-                )
-                has_data = True
-
-        axis_label = "個人G" if self.use_my_games_for_prob else "総G"
-        ax.set_xlabel(f"ゲーム数 ({axis_label})", color=FG_SUB)
-        ax.set_ylabel("確率分母 (1/X)", color=FG_SUB)
-        ax.grid(True, linestyle="--", alpha=0.2)
-
-        if has_data:
-            ax.legend(
-                loc="upper right",
-                facecolor=BG_PANEL,
-                edgecolor="none",
-                fontsize="small",
-            )
-
-        self.chart_canvas = FigureCanvasTkAgg(fig, master=self.history_frame)
-        self.chart_canvas.draw()
-        self.chart_canvas.get_tk_widget().pack(fill="both", expand=True)
-        plt.close(fig)
-
-    # ==========================================
-    # 設定画面
-    # ==========================================
-    def setup_setting_tab(self):
-        panel = tk.Frame(self.tab_setting, bg=BG_PANEL, padx=15, pady=15)
-        panel.pack(fill="both", expand=True, padx=10, pady=10)
-
-        tk.Label(
-            panel,
-            text="カウントする子役を選択",
-            font=("Helvetica", 11, "bold"),
-            fg=FG_TEXT,
-            bg=BG_PANEL,
-        ).pack(anchor="w", pady=(0, 10))
-
-        self.check_vars = {}
-        for role in self.roles_config:
-            name = role["name"]
-            var = tk.BooleanVar(value=role["active"])
-            self.check_vars[name] = var
-
-            cb = tk.Checkbutton(
-                panel,
-                text=name,
-                variable=var,
-                command=self.on_setting_changed,
-                bg=BG_PANEL,
-                fg=FG_TEXT,
-                selectcolor=BG_MAIN,
-                activebackground=BG_PANEL,
-                activeforeground=FG_TEXT,
-                font=("Helvetica", 11),
-                pady=4,
-            )
-            cb.pack(anchor="w")
-
-    def on_setting_changed(self):
-        for role in self.roles_config:
-            role["active"] = self.check_vars[role["name"]].get()
-        self.rebuild_counter_ui()
-
-    # ==========================================
-    # ロジック
-    # ==========================================
-    def toggle_minus_mode(self):
-        self.is_minus_mode = not self.is_minus_mode
-        if self.is_minus_mode:
-            self.btn_minus_mode.config(
-                text="－ 減算モード ON", bg=ACCENT_RED, fg="white"
-            )
-        else:
-            self.btn_minus_mode.config(
-                text="＋ 加算モード", bg=BG_PANEL, fg=ACCENT_GREEN
-            )
-
-        prefix = "-" if self.is_minus_mode else "+"
-        for btn, label in self.add_game_btns:
-            btn.config(text=f"{prefix}{label}")
-
-        for name, (btn, original_color) in self.role_buttons.items():
-            btn.config(
-                text="－" if self.is_minus_mode else "＋",
-                bg=ACCENT_RED if self.is_minus_mode else original_color,
-            )
-
-    def on_count_button_click(self, name):
-        delta = -1 if self.is_minus_mode else 1
-        self.update_count(name, delta)
-
-    def on_tab_change(self, event):
-        if self.notebook.index(self.notebook.select()) == 1:
-            self.update_history_graph()
-
-    def add_games_by(self, amount):
-        delta = -amount if self.is_minus_mode else amount
-        if self.my_games + delta >= 0:
-            self.my_games += delta
-            self.record_history()
-            self.refresh_display()
-
-    def set_start_game(self):
-        val = simpledialog.askinteger(
-            "打ち始めG",
-            "前任者のゲーム数:",
-            initialvalue=self.start_games,
-            parent=self.root,
-        )
-        if val is not None and val >= 0:
-            self.start_games = val
-            self.record_history()
-            self.refresh_display()
-
-    def set_total_game(self):
-        val = simpledialog.askinteger(
-            "現在の総G",
-            "データランプの総ゲーム数:",
-            initialvalue=self.total_games,
-            parent=self.root,
-        )
-        if val is not None:
-            if val >= self.start_games:
-                self.my_games = val - self.start_games
-            else:
-                self.start_games = 0
-                self.my_games = val
-            self.record_history()
-            self.refresh_display()
-
-    def toggle_calc_base(self):
-        self.use_my_games_for_prob = not self.use_my_games_for_prob
-        text = "基準: 個人G" if self.use_my_games_for_prob else "基準: 総G"
-        color = ACCENT_YELLOW if self.use_my_games_for_prob else ACCENT_GREEN
-        self.btn_toggle_base.config(text=text, fg=color)
-        self.record_history()
-        self.refresh_display()
-
-    def update_count(self, name, amount):
-        if self.counts[name] + amount >= 0:
-            self.counts[name] += amount
-            self.record_history()
-            self.refresh_display()
-
-    def refresh_display(self):
-        self.lbl_my_game.config(text=f"{self.my_games} G")
-        self.lbl_start_game.config(text=f"START : {self.start_games} G")
-        self.lbl_total_game.config(text=f"TOTAL : {self.total_games} G")
-
-        base_g = self.calc_base_games
-        for role in self.roles_config:
-            name = role["name"]
-            if not role["active"] or name not in self.role_widgets:
-                continue
-
-            count = self.counts[name]
-            prob_str = (
-                f"1/{base_g / count:.1f}" if count > 0 and base_g > 0 else "1/----"
-            )
-            self.role_widgets[name].config(text=f"{count} 回  ({prob_str})")
-
-    def reset_all(self):
-        if messagebox.askyesno("確認", "全データをリセットしますか？"):
-            self.start_games = 0
-            self.my_games = 0
-            self.is_minus_mode = False
-            for k in self.counts:
-                self.counts[k] = 0
-            self.history = []
-            self.record_history()
-            self.rebuild_counter_ui()
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = MobileSlotCounter(root)
-    root.mainloop()
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>SLOT COUNTER MOBILE</title>
+  <!-- グラフ描画用 Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-main: #121212;
+      --bg-panel: #1e1e1e;
+      --fg-text: #ffffff;
+      --fg-sub: #888888;
+      --accent-blue: #007bff;
+      --accent-green: #28a745;
+      --accent-red: #dc3545;
+      --accent-yellow: #ffc107;
+      --accent-purple: #6f42c1;
+      --accent-gray: #444444;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--fg-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* タブヘッダー */
+    .tab-header {
+      display: flex;
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid #333;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 0;
+      background: none;
+      border: none;
+      color: var(--fg-sub);
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      color: var(--fg-text);
+      background-color: var(--accent-blue);
+    }
+
+    /* タブコンテンツエリア */
+    .tab-content {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* 減算モード切り替えバー */
+    .mode-bar {
+      margin-bottom: 8px;
+    }
+
+    .mode-btn {
+      width: 100%;
+      padding: 10px;
+      background-color: var(--bg-panel);
+      color: var(--accent-green);
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .mode-btn.minus-active {
+      background-color: var(--accent-red);
+      color: #fff;
+    }
+
+    /* ゲーム数パネル */
+    .game-panel {
+      background-color: var(--bg-panel);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .sub-btn {
+      background-color: var(--bg-main);
+      color: var(--fg-text);
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .sub-btn.yellow { color: var(--accent-yellow); }
+
+    .disp-frame {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .lbl-my-game {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--accent-green);
+    }
+
+    .sub-g-box {
+      text-align: right;
+    }
+
+    .lbl-start-game { font-size: 11px; color: var(--fg-sub); }
+    .lbl-total-game { font-size: 14px; font-weight: bold; }
+
+    /* ゲーム数加算ボタン */
+    .btn-grid {
+      display: flex;
+      gap: 4px;
+    }
+
+    .add-g-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    /* カウンターリスト */
+    .counter-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .role-row {
+      background-color: var(--bg-panel);
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .role-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .role-name {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    .role-count-info {
+      font-size: 12px;
+      color: var(--fg-text);
+      font-family: monospace;
+    }
+
+    .count-btn {
+      width: 60px;
+      height: 44px;
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* フッター */
+    .footer {
+      text-align: center;
+      padding: 6px;
+    }
+
+    .reset-btn {
+      background-color: var(--accent-gray);
+      color: var(--fg-sub);
+      border: none;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    /* 設定タブ */
+    .setting-panel {
+      background-color: var(--bg-panel);
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    .setting-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #333;
+    }
+
+    .setting-item input {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* グラフ用キャンバス */
+    #chartCanvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- タブナビゲーション -->
+  <div class="tab-header">
+    <button class="tab-btn active" onclick="switchTab('counter')">カウンター</button>
+    <button class="tab-btn" onclick="switchTab('history')">確率推移</button>
+    <button class="tab-btn" onclick="switchTab('setting')">設定</button>
+  </div>
+
+  <!-- 1. カウンタータブ -->
+  <div id="tab-counter" class="tab-content active">
+    <div class="mode-bar">
+      <button id="btnMinusMode" class="mode-btn" onclick="toggleMinusMode()">＋ 加算モード</button>
+    </div>
+
+    <div class="game-panel">
+      <div class="top-row">
+        <button id="btnToggleBase" class="sub-btn yellow" onclick="toggleCalcBase()">基準: 個人G</button>
+        <div>
+          <button class="sub-btn" onclick="setStartGame()">打ち始めG</button>
+          <button class="sub-btn" onclick="setTotalGame()">総G入力</button>
+        </div>
+      </div>
+      <div class="disp-frame">
+        <div id="lblMyGame" class="lbl-my-game">0 G</div>
+        <div class="sub-g-box">
+          <div id="lblStartGame" class="lbl-start-game">START : 0 G</div>
+          <div id="lblTotalGame" class="lbl-total-game">TOTAL : 0 G</div>
+        </div>
+      </div>
+      <div class="btn-grid">
+        <button class="add-g-btn" style="background-color: var(--accent-green)" onclick="addGames(1)">+1G</button>
+        <button class="add-g-btn" style="background-color: var(--accent-blue)" onclick="addGames(10)">+10G</button>
+        <button class="add-g-btn" style="background-color: var(--accent-yellow); color:#000" onclick="addGames(50)">+50G</button>
+        <button class="add-g-btn" style="background-color: var(--accent-purple)" onclick="addGames(100)">+100G</button>
+      </div>
+    </div>
+
+    <div id="counterList" class="counter-list"></div>
+
+    <div class="footer">
+      <button class="reset-btn" onclick="resetAll()">リセット</button>
+    </div>
+  </div>
+
+  <!-- 2. 確率推移タブ -->
+  <div id="tab-history" class="tab-content">
+    <canvas id="chartCanvas"></canvas>
+  </div>
+
+  <!-- 3. 設定タブ -->
+  <div id="tab-setting" class="tab-content">
+    <div class="setting-panel">
+      <h3 style="margin-bottom:12px; font-size:14px; color:var(--fg-sub)">カウントする子役を選択</h3>
+      <div id="settingList"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- データ定義 ---
+    const rolesConfig = [
+      { name: "ベル", active: true, color: "#007bff" },
+      { name: "弱チェリー", active: true, color: "#dc3545" },
+      { name: "強チェリー", active: true, color: "#ff3344" },
+      { name: "弱スイカ", active: true, color: "#28a745" },
+      { name: "強スイカ", active: true, color: "#20c997" },
+      { name: "チャンス目A", active: true, color: "#ffc107" },
+      { name: "チャンス目B", active: true, color: "#ff9900" },
+      { name: "チャンス目C", active: true, color: "#e67e22" },
+      { name: "確定役", active: true, color: "#9b59b6" },
+      { name: "中段チェリー", active: true, color: "#8e44ad" }
+    ];
+
+    let startGames = 0;
+    let myGames = 0;
+    let useMyGamesForProb = true;
+    let isMinusMode = false;
+    let counts = {};
+    let historyData = [];
+    let chartInstance = null;
+
+    // 初期化
+    rolesConfig.forEach(r => counts[r.name] = 0);
+    recordHistory();
+
+    function getTotalGames() { return startGames + myGames; }
+    function getCalcBaseGames() { return useMyGamesForProb ? myGames : getTotalGames(); }
+
+    function recordHistory() {
+      const calcG = getCalcBaseGames();
+      const last = historyData[historyData.length - 1];
+      if (last && last.myGames === myGames) {
+        last.counts = { ...counts };
+        last.calcGames = calcG;
+      } else {
+        historyData.push({
+          myGames: myGames,
+          calcGames: calcG,
+          counts: { ...counts }
+        });
+      }
+    }
+
+    // --- UI レンダリング ---
+    function renderCounter() {
+      const list = document.getElementById("counterList");
+      list.innerHTML = "";
+
+      const baseG = getCalcBaseGames();
+
+      rolesConfig.forEach(role => {
+        if (!role.active) return;
+
+        const count = counts[role.name] || 0;
+        const probStr = (count > 0 && baseG > 0) ? `(1/${(baseG / count).toFixed(1)})` : "(1/----)";
+        const btnText = isMinusMode ? "－" : "＋";
+        const btnBg = isMinusMode ? "var(--accent-red)" : role.color;
+
+        const row = document.createElement("div");
+        row.className = "role-row";
+        row.innerHTML = `
+          <div class="role-info">
+            <span class="role-name" style="color:${role.color}">${role.name}</span>
+            <span class="role-count-info">${count} 回 ${probStr}</span>
+          </div>
+          <button class="count-btn" style="background-color:${btnBg}" onclick="countRole('${role.name}')">${btnText}</button>
+        `;
+        list.appendChild(row);
+      });
+
+      document.getElementById("lblMyGame").innerText = `${myGames} G`;
+      document.getElementById("lblStartGame").innerText = `START : ${startGames} G`;
+      document.getElementById("lblTotalGame").innerText = `TOTAL : ${getTotalGames()} G`;
+    }
+
+    function renderSettings() {
+      const list = document.getElementById("settingList");
+      list.innerHTML = "";
+
+      rolesConfig.forEach(role => {
+        const item = document.createElement("div");
+        item.className = "setting-item";
+        item.innerHTML = `
+          <input type="checkbox" id="cb-${role.name}" ${role.active ? "checked" : ""} onchange="toggleRole('${role.name}')">
+          <label for="cb-${role.name}">${role.name}</label>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    // --- ロジック ---
+    function countRole(name) {
+      const delta = isMinusMode ? -1 : 1;
+      if (counts[name] + delta >= 0) {
+        counts[name] += delta;
+        recordHistory();
+        renderCounter();
+      }
+    }
+
+    function addGames(amount) {
+      const delta = isMinusMode ? -amount : amount;
+      if (myGames + delta >= 0) {
+        myGames += delta;
+        recordHistory();
+        renderCounter();
+      }
+    }
+
+    function toggleMinusMode() {
+      isMinusMode = !isMinusMode;
+      const btn = document.getElementById("btnMinusMode");
+      if (isMinusMode) {
+        btn.innerText = "－ 減算モード ON";
+        btn.classList.add("minus-active");
+      } else {
+        btn.innerText = "＋ 加算モード";
+        btn.classList.remove("minus-active");
+      }
+      renderCounter();
+    }
+
+    function toggleCalcBase() {
+      useMyGamesForProb = !useMyGamesForProb;
+      const btn = document.getElementById("btnToggleBase");
+      btn.innerText = useMyGamesForProb ? "基準: 個人G" : "基準: 総G";
+      btn.className = useMyGamesForProb ? "sub-btn yellow" : "sub-btn";
+      recordHistory();
+      renderCounter();
+    }
+
+    function setStartGame() {
+      const val = prompt("打ち始めゲーム数を入力:", startGames);
+      if (val !== null && !isNaN(val) && val >= 0) {
+        startGames = parseInt(val, 10);
+        recordHistory();
+        renderCounter();
+      }
+    }
+
+    function setTotalGame() {
+      const val = prompt("現在の総ゲーム数を入力:", getTotalGames());
+      if (val !== null && !isNaN(val)) {
+        const total = parseInt(val, 10);
+        if (total >= startGames) {
+          myGames = total - startGames;
+        } else {
+          startGames = 0;
+          myGames = total;
+        }
+        recordHistory();
+        renderCounter();
+      }
+    }
+
+    function toggleRole(name) {
+      const role = rolesConfig.find(r => r.name === name);
+      if (role) role.active = !role.active;
+      renderCounter();
+    }
+
+    function resetAll() {
+      if (confirm("全データをリセットしますか？")) {
+        startGames = 0;
+        myGames = 0;
+        isMinusMode = false;
+        rolesConfig.forEach(r => counts[r.name] = 0);
+        historyData = [];
+        recordHistory();
+        renderCounter();
+      }
+    }
+
+    // --- タブ切り替え ---
+    function switchTab(tabName) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+
+      event.target.classList.add("active");
+      document.getElementById(`tab-${tabName}`).classList.add("active");
+
+      if (tabName === "history") {
+        updateGraph();
+      }
+    }
+
+    // --- グラフ描画 ---
+    function updateGraph() {
+      const ctx = document.getElementById("chartCanvas").getContext("2d");
+      const labels = historyData.map(h => h.calcGames);
+
+      const datasets = rolesConfig.filter(r => r.active).map(role => {
+        const data = historyData.map(h => {
+          const g = h.calcGames;
+          const c = h.counts[role.name] || 0;
+          return c > 0 ? (g / c).toFixed(1) : null;
+        });
+
+        return {
+          label: role.name,
+          data: data,
+          borderColor: role.color,
+          backgroundColor: role.color,
+          spanGaps: true,
+          tension: 0.1
+        };
+      });
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: 'ゲーム数', color: '#888' }, grid: { color: '#333' } },
+            y: { title: { display: true, text: '確率分母 (1/X)', color: '#888' }, grid: { color: '#333' } }
+          },
+          plugins: {
+            legend: { labels: { color: '#fff' } }
+          }
+        }
+      });
+    }
+
+    // 初期表示処理
+    renderCounter();
+    renderSettings();
+  </script>
+</body>
+</html>
