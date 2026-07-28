@@ -2,9 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SLOT COUNTER MOBILE</title>
-  <!-- グラフ描画用 Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -17,7 +16,7 @@
       --accent-red: #dc3545;
       --accent-yellow: #ffc107;
       --accent-purple: #6f42c1;
-      --accent-gray: #444444;
+      --accent-gray: #333333;
     }
 
     * {
@@ -26,123 +25,86 @@
       -webkit-user-select: none;
       margin: 0;
       padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
       background-color: var(--bg-main);
       color: var(--fg-text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
       height: 100vh;
-      overflow: hidden;
-    }
-
-    /* タブヘッダー */
-    .tab-header {
+      height: 100dvh; /* スマホのアドレスバー考慮 */
       display: flex;
-      background-color: var(--bg-panel);
-      border-bottom: 1px solid #333;
-    }
-
-    .tab-btn {
-      flex: 1;
-      padding: 12px 0;
-      background: none;
-      border: none;
-      color: var(--fg-sub);
-      font-weight: bold;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .tab-btn.active {
-      color: var(--fg-text);
-      background-color: var(--accent-blue);
-    }
-
-    /* タブコンテンツエリア */
-    .tab-content {
-      flex: 1;
-      display: none;
       flex-direction: column;
-      overflow-y: auto;
-      padding: 10px;
+      overflow: hidden;
+      padding: 6px;
+      gap: 6px;
     }
 
-    .tab-content.active {
+    /* 上部ヘッダー（G数＆モード切り替え） */
+    .top-section {
+      background-color: var(--bg-panel);
+      border-radius: 8px;
+      padding: 6px 10px;
       display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
     }
 
-    /* 減算モード切り替えバー */
-    .mode-bar {
-      margin-bottom: 8px;
+    .row-1 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .mode-btn {
-      width: 100%;
-      padding: 10px;
-      background-color: var(--bg-panel);
+      padding: 4px 10px;
+      background-color: #2a2a2a;
       color: var(--accent-green);
-      border: none;
-      border-radius: 6px;
+      border: 1px solid var(--accent-green);
+      border-radius: 4px;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 11px;
       cursor: pointer;
     }
 
     .mode-btn.minus-active {
       background-color: var(--accent-red);
       color: #fff;
-    }
-
-    /* ゲーム数パネル */
-    .game-panel {
-      background-color: var(--bg-panel);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 8px;
-    }
-
-    .top-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
+      border-color: var(--accent-red);
     }
 
     .sub-btn {
-      background-color: var(--bg-main);
-      color: var(--fg-text);
+      background-color: #2a2a2a;
+      color: var(--fg-sub);
       border: none;
-      padding: 4px 8px;
+      padding: 3px 6px;
       border-radius: 4px;
-      font-size: 11px;
+      font-size: 10px;
       cursor: pointer;
     }
+    .sub-btn.yellow { color: var(--accent-yellow); font-weight: bold; }
 
-    .sub-btn.yellow { color: var(--accent-yellow); }
-
-    .disp-frame {
+    .g-display {
       display: flex;
+      align-items: baseline;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
     }
 
-    .lbl-my-game {
-      font-size: 32px;
-      font-weight: bold;
+    .my-g {
+      font-size: 26px;
+      font-weight: 900;
       color: var(--accent-green);
+      line-height: 1;
     }
 
-    .sub-g-box {
+    .sub-g-info {
+      font-size: 11px;
+      color: var(--fg-sub);
       text-align: right;
     }
 
-    .lbl-start-game { font-size: 11px; color: var(--fg-sub); }
-    .lbl-total-game { font-size: 14px; font-weight: bold; }
-
-    /* ゲーム数加算ボタン */
+    /* G数クイック加算ボタン */
     .btn-grid {
       display: flex;
       gap: 4px;
@@ -150,159 +112,203 @@
 
     .add-g-btn {
       flex: 1;
-      padding: 10px 0;
+      padding: 6px 0;
       border: none;
       border-radius: 4px;
       font-weight: bold;
+      font-size: 11px;
       color: #fff;
       cursor: pointer;
     }
 
-    /* カウンターリスト */
-    .counter-list {
+    /* 中央メインエリア：子役リスト（全要素を画面内に等分） */
+    .counter-grid {
       flex: 1;
-      overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
+      overflow: hidden; /* スクリーン内に無理やり収める */
     }
 
     .role-row {
+      flex: 1; /* 行の高さを均等分配 */
       background-color: var(--bg-panel);
       border-radius: 6px;
-      padding: 8px 12px;
+      padding: 0 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      min-height: 0; /* フレックス縮小許可 */
     }
 
     .role-info {
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
     }
 
     .role-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: bold;
-      margin-bottom: 2px;
+      white-space: nowrap;
     }
 
-    .role-count-info {
+    .role-prob {
       font-size: 12px;
-      color: var(--fg-text);
+      color: var(--fg-sub);
       font-family: monospace;
     }
 
+    .role-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .role-count {
+      font-size: 16px;
+      font-weight: bold;
+      font-family: monospace;
+      min-width: 32px;
+      text-align: right;
+    }
+
     .count-btn {
-      width: 60px;
-      height: 44px;
+      width: 46px;
+      height: 80%;
       border: none;
-      border-radius: 6px;
+      border-radius: 4px;
       color: #fff;
-      font-size: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 下部サブナビ＆操作バー */
+    .bottom-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 8px 0;
+      background-color: var(--bg-panel);
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: var(--fg-sub);
+      font-size: 11px;
       font-weight: bold;
       cursor: pointer;
     }
-
-    /* フッター */
-    .footer {
-      text-align: center;
-      padding: 6px;
+    .nav-btn.active {
+      color: #fff;
+      background-color: var(--accent-blue);
+      border-color: var(--accent-blue);
     }
 
-    .reset-btn {
-      background-color: var(--accent-gray);
-      color: var(--fg-sub);
+    /* モーダル（グラフ・設定用） */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.85);
+      z-index: 100;
+      flex-direction: column;
+      padding: 12px;
+    }
+    .modal.active { display: flex; }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .modal-close {
+      background: var(--accent-red);
+      color: #fff;
       border: none;
-      padding: 6px 16px;
+      padding: 4px 12px;
       border-radius: 4px;
-      font-size: 11px;
-      cursor: pointer;
+      font-weight: bold;
     }
-
-    /* 設定タブ */
-    .setting-panel {
-      background-color: var(--bg-panel);
-      padding: 16px;
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg-panel);
       border-radius: 8px;
+      padding: 12px;
     }
 
     .setting-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 0;
+      gap: 12px;
+      padding: 10px 0;
       border-bottom: 1px solid #333;
-    }
-
-    .setting-item input {
-      width: 18px;
-      height: 18px;
-    }
-
-    /* グラフ用キャンバス */
-    #chartCanvas {
-      width: 100% !important;
-      height: 100% !important;
     }
   </style>
 </head>
 <body>
 
-  <!-- タブナビゲーション -->
-  <div class="tab-header">
-    <button class="tab-btn active" onclick="switchTab('counter')">カウンター</button>
-    <button class="tab-btn" onclick="switchTab('history')">確率推移</button>
-    <button class="tab-btn" onclick="switchTab('setting')">設定</button>
-  </div>
-
-  <!-- 1. カウンタータブ -->
-  <div id="tab-counter" class="tab-content active">
-    <div class="mode-bar">
-      <button id="btnMinusMode" class="mode-btn" onclick="toggleMinusMode()">＋ 加算モード</button>
-    </div>
-
-    <div class="game-panel">
-      <div class="top-row">
-        <button id="btnToggleBase" class="sub-btn yellow" onclick="toggleCalcBase()">基準: 個人G</button>
-        <div>
-          <button class="sub-btn" onclick="setStartGame()">打ち始めG</button>
-          <button class="sub-btn" onclick="setTotalGame()">総G入力</button>
-        </div>
-      </div>
-      <div class="disp-frame">
-        <div id="lblMyGame" class="lbl-my-game">0 G</div>
-        <div class="sub-g-box">
-          <div id="lblStartGame" class="lbl-start-game">START : 0 G</div>
-          <div id="lblTotalGame" class="lbl-total-game">TOTAL : 0 G</div>
-        </div>
-      </div>
-      <div class="btn-grid">
-        <button class="add-g-btn" style="background-color: var(--accent-green)" onclick="addGames(1)">+1G</button>
-        <button class="add-g-btn" style="background-color: var(--accent-blue)" onclick="addGames(10)">+10G</button>
-        <button class="add-g-btn" style="background-color: var(--accent-yellow); color:#000" onclick="addGames(50)">+50G</button>
-        <button class="add-g-btn" style="background-color: var(--accent-purple)" onclick="addGames(100)">+100G</button>
+  <!-- 上部：G数＆モード管理 -->
+  <div class="top-section">
+    <div class="row-1">
+      <button id="btnMinusMode" class="mode-btn" onclick="toggleMinusMode()">＋ 加算</button>
+      <div>
+        <button id="btnToggleBase" class="sub-btn yellow" onclick="toggleCalcBase()">個人G</button>
+        <button class="sub-btn" onclick="setStartGame()">始: <span id="lblStartVal">0</span></button>
+        <button class="sub-btn" onclick="setTotalGame()">総: <span id="lblTotalVal">0</span></button>
       </div>
     </div>
 
-    <div id="counterList" class="counter-list"></div>
+    <div class="g-display">
+      <div id="lblMyGame" class="my-g">0 <span style="font-size:14px; color:#fff">G</span></div>
+      <div class="sub-g-info" id="lblSubGInfo">総 0G / 始 0G</div>
+    </div>
 
-    <div class="footer">
-      <button class="reset-btn" onclick="resetAll()">リセット</button>
+    <div class="btn-grid">
+      <button class="add-g-btn" style="background-color: var(--accent-green)" onclick="addGames(1)">+1</button>
+      <button class="add-g-btn" style="background-color: var(--accent-blue)" onclick="addGames(10)">+10</button>
+      <button class="add-g-btn" style="background-color: var(--accent-yellow); color:#000" onclick="addGames(50)">+50</button>
+      <button class="add-g-btn" style="background-color: var(--accent-purple)" onclick="addGames(100)">+100</button>
     </div>
   </div>
 
-  <!-- 2. 確率推移タブ -->
-  <div id="tab-history" class="tab-content">
-    <canvas id="chartCanvas"></canvas>
+  <!-- 中央：子役カウンターリスト（画面サイズに合わせて自動フィット） -->
+  <div id="counterGrid" class="counter-grid"></div>
+
+  <!-- 下部：ナビゲーションバー -->
+  <div class="bottom-bar">
+    <button class="nav-btn" onclick="openModal('modalHistory')">📈 確率推移グラフ</button>
+    <button class="nav-btn" onclick="openModal('modalSetting')">⚙ 子役選択</button>
+    <button class="nav-btn" style="color:var(--accent-red)" onclick="resetAll()">全リセット</button>
   </div>
 
-  <!-- 3. 設定タブ -->
-  <div id="tab-setting" class="tab-content">
-    <div class="setting-panel">
-      <h3 style="margin-bottom:12px; font-size:14px; color:var(--fg-sub)">カウントする子役を選択</h3>
-      <div id="settingList"></div>
+  <!-- モーダル：グラフ -->
+  <div id="modalHistory" class="modal">
+    <div class="modal-header">
+      <h3>確率推移グラフ</h3>
+      <button class="modal-close" onclick="closeModal('modalHistory')">閉じる</button>
     </div>
+    <div class="modal-body">
+      <canvas id="chartCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- モーダル：設定 -->
+  <div id="modalSetting" class="modal">
+    <div class="modal-header">
+      <h3>表示する子役を選択</h3>
+      <button class="modal-close" onclick="closeModal('modalSetting')">閉じる</button>
+    </div>
+    <div class="modal-body" id="settingList"></div>
   </div>
 
   <script>
@@ -315,9 +321,7 @@
       { name: "強スイカ", active: true, color: "#20c997" },
       { name: "チャンス目A", active: true, color: "#ffc107" },
       { name: "チャンス目B", active: true, color: "#ff9900" },
-      { name: "チャンス目C", active: true, color: "#e67e22" },
-      { name: "確定役", active: true, color: "#9b59b6" },
-      { name: "中段チェリー", active: true, color: "#8e44ad" }
+      { name: "確定役", active: false, color: "#9b59b6" }
     ];
 
     let startGames = 0;
@@ -328,7 +332,6 @@
     let historyData = [];
     let chartInstance = null;
 
-    // 初期化
     rolesConfig.forEach(r => counts[r.name] = 0);
     recordHistory();
 
@@ -342,18 +345,14 @@
         last.counts = { ...counts };
         last.calcGames = calcG;
       } else {
-        historyData.push({
-          myGames: myGames,
-          calcGames: calcG,
-          counts: { ...counts }
-        });
+        historyData.push({ myGames: myGames, calcGames: calcG, counts: { ...counts } });
       }
     }
 
-    // --- UI レンダリング ---
+    // レンダリング
     function renderCounter() {
-      const list = document.getElementById("counterList");
-      list.innerHTML = "";
+      const grid = document.getElementById("counterGrid");
+      grid.innerHTML = "";
 
       const baseG = getCalcBaseGames();
 
@@ -361,7 +360,7 @@
         if (!role.active) return;
 
         const count = counts[role.name] || 0;
-        const probStr = (count > 0 && baseG > 0) ? `(1/${(baseG / count).toFixed(1)})` : "(1/----)";
+        const probStr = (count > 0 && baseG > 0) ? `1/${(baseG / count).toFixed(1)}` : "1/--";
         const btnText = isMinusMode ? "－" : "＋";
         const btnBg = isMinusMode ? "var(--accent-red)" : role.color;
 
@@ -370,34 +369,37 @@
         row.innerHTML = `
           <div class="role-info">
             <span class="role-name" style="color:${role.color}">${role.name}</span>
-            <span class="role-count-info">${count} 回 ${probStr}</span>
+            <span class="role-prob">${probStr}</span>
           </div>
-          <button class="count-btn" style="background-color:${btnBg}" onclick="countRole('${role.name}')">${btnText}</button>
+          <div class="role-right">
+            <span class="role-count">${count}</span>
+            <button class="count-btn" style="background-color:${btnBg}" onclick="countRole('${role.name}')">${btnText}</button>
+          </div>
         `;
-        list.appendChild(row);
+        grid.appendChild(row);
       });
 
-      document.getElementById("lblMyGame").innerText = `${myGames} G`;
-      document.getElementById("lblStartGame").innerText = `START : ${startGames} G`;
-      document.getElementById("lblTotalGame").innerText = `TOTAL : ${getTotalGames()} G`;
+      document.getElementById("lblMyGame").innerHTML = `${myGames} <span style="font-size:14px; color:#fff">G</span>`;
+      document.getElementById("lblStartVal").innerText = startGames;
+      document.getElementById("lblTotalVal").innerText = getTotalGames();
+      document.getElementById("lblSubGInfo").innerText = `総 ${getTotalGames()}G / 始 ${startGames}G`;
     }
 
     function renderSettings() {
       const list = document.getElementById("settingList");
       list.innerHTML = "";
-
       rolesConfig.forEach(role => {
         const item = document.createElement("div");
         item.className = "setting-item";
         item.innerHTML = `
-          <input type="checkbox" id="cb-${role.name}" ${role.active ? "checked" : ""} onchange="toggleRole('${role.name}')">
-          <label for="cb-${role.name}">${role.name}</label>
+          <input type="checkbox" id="cb-${role.name}" ${role.active ? "checked" : ""} style="width:20px;height:20px" onchange="toggleRole('${role.name}')">
+          <label for="cb-${role.name}" style="font-size:16px; color:#fff">${role.name}</label>
         `;
         list.appendChild(item);
       });
     }
 
-    // --- ロジック ---
+    // アクション
     function countRole(name) {
       const delta = isMinusMode ? -1 : 1;
       if (counts[name] + delta >= 0) {
@@ -419,27 +421,21 @@
     function toggleMinusMode() {
       isMinusMode = !isMinusMode;
       const btn = document.getElementById("btnMinusMode");
-      if (isMinusMode) {
-        btn.innerText = "－ 減算モード ON";
-        btn.classList.add("minus-active");
-      } else {
-        btn.innerText = "＋ 加算モード";
-        btn.classList.remove("minus-active");
-      }
+      btn.innerText = isMinusMode ? "－ 減算" : "＋ 加算";
+      btn.classList.toggle("minus-active", isMinusMode);
       renderCounter();
     }
 
     function toggleCalcBase() {
       useMyGamesForProb = !useMyGamesForProb;
       const btn = document.getElementById("btnToggleBase");
-      btn.innerText = useMyGamesForProb ? "基準: 個人G" : "基準: 総G";
-      btn.className = useMyGamesForProb ? "sub-btn yellow" : "sub-btn";
+      btn.innerText = useMyGamesForProb ? "個人G" : "総G";
       recordHistory();
       renderCounter();
     }
 
     function setStartGame() {
-      const val = prompt("打ち始めゲーム数を入力:", startGames);
+      const val = prompt("打ち始めゲーム数:", startGames);
       if (val !== null && !isNaN(val) && val >= 0) {
         startGames = parseInt(val, 10);
         recordHistory();
@@ -448,15 +444,10 @@
     }
 
     function setTotalGame() {
-      const val = prompt("現在の総ゲーム数を入力:", getTotalGames());
+      const val = prompt("現在の総ゲーム数:", getTotalGames());
       if (val !== null && !isNaN(val)) {
         const total = parseInt(val, 10);
-        if (total >= startGames) {
-          myGames = total - startGames;
-        } else {
-          startGames = 0;
-          myGames = total;
-        }
+        myGames = Math.max(0, total - startGames);
         recordHistory();
         renderCounter();
       }
@@ -469,10 +460,8 @@
     }
 
     function resetAll() {
-      if (confirm("全データをリセットしますか？")) {
-        startGames = 0;
-        myGames = 0;
-        isMinusMode = false;
+      if (confirm("データを全リセットしますか？")) {
+        startGames = 0; myGames = 0; isMinusMode = false;
         rolesConfig.forEach(r => counts[r.name] = 0);
         historyData = [];
         recordHistory();
@@ -480,61 +469,49 @@
       }
     }
 
-    // --- タブ切り替え ---
-    function switchTab(tabName) {
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-
-      event.target.classList.add("active");
-      document.getElementById(`tab-${tabName}`).classList.add("active");
-
-      if (tabName === "history") {
-        updateGraph();
-      }
+    // モーダル処理
+    function openModal(id) {
+      document.getElementById(id).classList.add("active");
+      if (id === "modalHistory") updateGraph();
     }
 
-    // --- グラフ描画 ---
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("active");
+    }
+
+    // グラフ描画
     function updateGraph() {
       const ctx = document.getElementById("chartCanvas").getContext("2d");
       const labels = historyData.map(h => h.calcGames);
-
-      const datasets = rolesConfig.filter(r => r.active).map(role => {
-        const data = historyData.map(h => {
-          const g = h.calcGames;
+      const datasets = rolesConfig.filter(r => r.active).map(role => ({
+        label: role.name,
+        data: historyData.map(h => {
           const c = h.counts[role.name] || 0;
-          return c > 0 ? (g / c).toFixed(1) : null;
-        });
-
-        return {
-          label: role.name,
-          data: data,
-          borderColor: role.color,
-          backgroundColor: role.color,
-          spanGaps: true,
-          tension: 0.1
-        };
-      });
+          return c > 0 ? (h.calcGames / c).toFixed(1) : null;
+        }),
+        borderColor: role.color,
+        backgroundColor: role.color,
+        spanGaps: true,
+        tension: 0.1
+      }));
 
       if (chartInstance) chartInstance.destroy();
-
       chartInstance = new Chart(ctx, {
         type: 'line',
-        data: { labels: labels, datasets: datasets },
+        data: { labels, datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            x: { title: { display: true, text: 'ゲーム数', color: '#888' }, grid: { color: '#333' } },
+            x: { title: { display: true, text: 'G数', color: '#888' }, grid: { color: '#333' } },
             y: { title: { display: true, text: '確率分母 (1/X)', color: '#888' }, grid: { color: '#333' } }
           },
-          plugins: {
-            legend: { labels: { color: '#fff' } }
-          }
+          plugins: { legend: { labels: { color: '#fff' } } }
         }
       });
     }
 
-    // 初期表示処理
+    // 初期起動
     renderCounter();
     renderSettings();
   </script>
