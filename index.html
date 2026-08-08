@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>ひぐらし祭2 設定判別</title>
+  <title>ひぐらし祭2 設定判別カウンター</title>
+  <!-- グラフ描画用 Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --primary: #d9534f;
+      --sub-primary: #337ab7;
+      --danger: #d9534f;
       --bg: #121214;
       --card-bg: #1e1e24;
       --btn-bg: #2d2d38;
-      --btn-active: #3d3d4e;
       --text: #f4f4f6;
       --accent: #5bc0de;
+      --sub-text: #aaa;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -21,6 +25,7 @@
       margin: 0;
       padding: 8px;
       touch-action: manipulation;
+      padding-bottom: 100px;
     }
     h1 {
       font-size: 1.1rem;
@@ -28,6 +33,37 @@
       margin: 4px 0 8px;
       color: var(--primary);
     }
+    /* モード切替バー */
+    .mode-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .mode-toggle {
+      display: flex;
+      gap: 4px;
+      background: #000;
+      padding: 4px;
+      border-radius: 6px;
+    }
+    .mode-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: #888;
+      background: transparent;
+    }
+    .mode-btn.active-add { background: #5cb85c; color: #fff; }
+    .mode-btn.active-sub { background: var(--danger); color: #fff; }
+
+    /* タブ切り替え */
     .tabs {
       display: flex;
       gap: 4px;
@@ -38,25 +74,23 @@
     }
     .tab-btn {
       flex: 1;
-      padding: 12px 4px;
+      padding: 10px 4px;
       background: transparent;
       border: none;
-      color: #888;
+      color: var(--sub-text);
       font-weight: bold;
       cursor: pointer;
       border-radius: 6px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
     .tab-btn.active {
       background: var(--primary);
       color: #fff;
     }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* カード・グリッド */
     .card {
       background: var(--card-bg);
       padding: 10px;
@@ -67,30 +101,70 @@
       font-weight: bold;
       font-size: 0.85rem;
       color: var(--accent);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       border-bottom: 1px solid #333;
-      padding-bottom: 2px;
+      padding-bottom: 4px;
     }
     .game-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .game-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
     }
-    .game-input-group label {
-      font-size: 0.9rem;
-      font-weight: bold;
-    }
-    .game-input-group input {
+    .game-row label { font-size: 0.85rem; font-weight: bold; }
+    .game-row input {
       background: #000;
       border: 1px solid #444;
       color: #fff;
-      padding: 8px;
-      border-radius: 6px;
-      font-size: 1.1rem;
-      width: 120px;
+      padding: 6px;
+      border-radius: 4px;
+      font-size: 1rem;
+      width: 100px;
       text-align: right;
     }
+    .quick-btn-group {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .quick-btn {
+      flex: 1;
+      background: var(--btn-bg);
+      color: #fff;
+      border: 1px solid #444;
+      padding: 6px 0;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .add-custom-group {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .add-custom-group input {
+      flex: 1;
+      background: #000;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .add-custom-group button {
+      background: var(--sub-primary);
+      color: #fff;
+      border: none;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    /* カウンターボタンのグリッド */
     .counter-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -99,7 +173,7 @@
     .counter-card {
       background: var(--btn-bg);
       border-radius: 6px;
-      padding: 6px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -107,7 +181,7 @@
     .counter-title {
       font-size: 0.75rem;
       color: #ccc;
-      line-height: 1.1;
+      line-height: 1.2;
       min-height: 2.2em;
     }
     .counter-val {
@@ -117,56 +191,75 @@
       margin: 4px 0;
       color: #fff;
     }
-    .btn-group {
-      display: flex;
-      gap: 4px;
-    }
-    .btn-add {
-      flex: 3;
+    .btn-count {
+      width: 100%;
       background: var(--primary);
       color: white;
       border: none;
-      padding: 8px 0;
-      font-size: 1rem;
+      padding: 10px 0;
+      font-size: 1.1rem;
       font-weight: bold;
       border-radius: 4px;
       cursor: pointer;
     }
-    .btn-add:active {
-      opacity: 0.7;
+    body.sub-mode .btn-count {
+      background: var(--danger) !important;
     }
-    .btn-sub {
+    .btn-count:active { opacity: 0.7; }
+
+    /* まとめ入力フォーム */
+    .bulk-add-box {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .bulk-add-box input {
       flex: 1;
-      background: #444;
-      color: #ccc;
-      border: none;
-      padding: 8px 0;
-      font-size: 0.9rem;
+      background: #000;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 4px;
       border-radius: 4px;
-      cursor: pointer;
+      font-size: 0.85rem;
     }
-    .btn-sub:active {
-      background: #666;
+    .bulk-add-box button {
+      background: var(--sub-primary);
+      color: #fff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    /* 設定推測・固定バー */
+    .sticky-result {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #18181c;
+      border-top: 2px solid var(--primary);
+      padding: 6px 8px;
+      z-index: 1000;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.8);
     }
     .result-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 4px;
     }
     .result-table th, .result-table td {
-      padding: 6px 2px;
+      padding: 4px 2px;
       text-align: center;
-      border-bottom: 1px solid #333;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
     }
-    .result-table th {
-      background: #18181c;
-      color: #aaa;
-    }
-    .highlight {
-      color: #5cb85c;
-      font-weight: bold;
-      font-size: 0.95rem;
+    .result-table th { color: var(--sub-text); }
+    .highlight { color: #5cb85c; font-weight: bold; font-size: 0.85rem; }
+
+    /* チャート */
+    .chart-container {
+      position: relative;
+      height: 250px;
+      width: 100%;
     }
   </style>
 </head>
@@ -174,28 +267,57 @@
 
   <h1>ひぐらし祭2 設定判別</h1>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('normal', event)">通常・ボーナス・演出</button>
-    <button class="tab-btn" onclick="switchTab('art', event)">ART中</button>
+  <!-- カウントモード（加算 / 減算）切替 -->
+  <div class="mode-bar">
+    <span style="font-size: 0.85rem; font-weight: bold;">操作モード:</span>
+    <div class="mode-toggle">
+      <button id="mode-add-btn" class="mode-btn active-add" onclick="setMode('add')">➕ 加算</button>
+      <button id="mode-sub-btn" class="mode-btn" onclick="setMode('sub')">➖ 減算 (ミス修正)</button>
+    </div>
   </div>
 
-  <!-- タブ1: 通常・ボーナス・演出 -->
+  <!-- タブ切替ボタン -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('normal', event)">通常・ボーナス示唆</button>
+    <button class="tab-btn" onclick="switchTab('art', event)">ART中</button>
+    <button class="tab-btn" onclick="switchTab('graph', event)">確率推移グラフ</button>
+  </div>
+
+  <!-- タブ1: 通常・ボーナス・示唆 -->
   <div id="tab-normal" class="tab-content active">
+    <!-- ゲーム数入力 -->
     <div class="card">
       <div class="game-input-group">
-        <label>通常ゲーム数</label>
-        <input type="number" id="g_normal" value="0" inputmode="numeric" oninput="calculate()">
+        <div class="game-row">
+          <label>通常ゲーム数</label>
+          <input type="number" id="g_normal" value="0" inputmode="numeric" oninput="calculate()">
+        </div>
       </div>
     </div>
 
+    <!-- 通常時単体小役 -->
     <div class="card">
-      <div class="card-title">通常時 小役・特定ボーナス</div>
+      <div class="card-title">通常時 単体小役</div>
       <div class="counter-grid">
-        <!-- 各小役カウンター -->
+        <div class="counter-card">
+          <div class="counter-title">[0] スイカ</div>
+          <div class="counter-val" id="val_0">0</div>
+          <button class="btn-count" onclick="count(0)">+1</button>
+        </div>
+        <div class="counter-card">
+          <div class="counter-title">[1] 1枚役A</div>
+          <div class="counter-val" id="val_1">0</div>
+          <button class="btn-count" onclick="count(1)">+1</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ボーナス重複入力 -->
+    <div class="card">
+      <div class="card-title">特定ボーナス重複 (※単体小役とは別枠)</div>
+      <div class="counter-grid">
         <script>
-          const normalItems = [
-            {id: 0, title: "[0] スイカ"},
-            {id: 1, title: "[1] 1枚役A"},
+          const bonusItems = [
             {id: 3, title: "[3] 1枚役A+赤同色"},
             {id: 4, title: "[4] 確定役+赤異色"},
             {id: 5, title: "[5] スイカ+白同色"},
@@ -208,40 +330,12 @@
             {id: 12, title: "[12] 共通ベル+白REG"},
             {id: 13, title: "[13] 1枚役A+白REG"}
           ];
-          normalItems.forEach(item => {
-            document.write(`
-              <div class="counter-card">
-                <div class="counter-title">${item.title}</div>
-                <div class="counter-val" id="val_${item.id}">0</div>
-                <div class="btn-group">
-                  <button class="btn-sub" onclick="add(${item.id}, -1)">-</button>
-                  <button class="btn-add" onclick="add(${item.id}, 1)">+1</button>
-                </div>
-              </div>
-            `);
-          });
-        </script>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">ボーナス中</div>
-      <div class="counter-grid">
-        <script>
-          const bonusItems = [
-            {id: 45, title: "[45] オヤシロレアベル"},
-            {id: 47, title: "[47] ひぐらしハズレ"},
-            {id: 48, title: "[48] 富竹斜めBAR"}
-          ];
           bonusItems.forEach(item => {
             document.write(`
               <div class="counter-card">
                 <div class="counter-title">${item.title}</div>
                 <div class="counter-val" id="val_${item.id}">0</div>
-                <div class="btn-group">
-                  <button class="btn-sub" onclick="add(${item.id}, -1)">-</button>
-                  <button class="btn-add" onclick="add(${item.id}, 1)">+1</button>
-                </div>
+                <button class="btn-count" onclick="count(${item.id})">+1</button>
               </div>
             `);
           });
@@ -249,30 +343,43 @@
       </div>
     </div>
 
+    <!-- ボーナス中・1枚絵・各種示唆 -->
     <div class="card">
-      <div class="card-title">演出・ボイス示唆</div>
+      <div class="card-title">ボーナス中・1枚絵・終了時各種示唆</div>
       <div class="counter-grid">
         <script>
-          const effectItems = [
+          const bonusDetailItems = [
+            {id: 45, title: "[45] オヤシロレアベル"},
+            {id: 47, title: "[47] ひぐらしハズレ"},
+            {id: 48, title: "[48] 富竹斜めBAR"},
             {id: 19, title: "[19] にぱ～44%"},
             {id: 20, title: "[20] にぱ～55%"},
             {id: 21, title: "[21] にぱ～66%"},
             {id: 22, title: "[22] CZナビ+2開始"},
+            {id: 49, title: "[49] ビタ1周: 通常"},
+            {id: 50, title: "[50] ビタ1周: 奇数示唆"},
+            {id: 51, title: "[51] ビタ1周: 偶数示唆"},
+            {id: 52, title: "[52] ビタ1周: AM (設4+)"},
+            {id: 53, title: "[53] ビタ1周: ミニキャラ(設6)"},
+            {id: 54, title: "[54] ビタ2周: 通常"},
+            {id: 55, title: "[55] ビタ2周: 奇数示唆"},
+            {id: 56, title: "[56] ビタ2周: 偶数示唆"},
+            {id: 57, title: "[57] ビタ2周: AM (設4+)"},
+            {id: 58, title: "[58] ビタ2周: ミニキャラ(設6)"},
+            {id: 67, title: "[67] REG金背景 (設2+)"},
             {id: 68, title: "[68] 嫌な事件だったね"},
             {id: 69, title: "[69] この世界はもう…"},
             {id: 70, title: "[70] はぁガッカリ"},
             {id: 71, title: "[71] 静かな夜ね"},
-            {id: 72, title: "[72] いやああああ"}
+            {id: 72, title: "[72] いやああああ (設5+)"},
+            {id: 73, title: "[73] 確定画面水着 (設4+)"}
           ];
-          effectItems.forEach(item => {
+          bonusDetailItems.forEach(item => {
             document.write(`
               <div class="counter-card">
                 <div class="counter-title">${item.title}</div>
                 <div class="counter-val" id="val_${item.id}">0</div>
-                <div class="btn-group">
-                  <button class="btn-sub" onclick="add(${item.id}, -1)">-</button>
-                  <button class="btn-add" onclick="add(${item.id}, 1)">+1</button>
-                </div>
+                <button class="btn-count" onclick="count(${item.id})">+1</button>
               </div>
             `);
           });
@@ -283,41 +390,65 @@
 
   <!-- タブ2: ART中 -->
   <div id="tab-art" class="tab-content">
+    <!-- ARTゲーム数入力（クイック・加算・書き換え対応） -->
     <div class="card">
+      <div class="card-title">ARTゲーム数 入力</div>
       <div class="game-input-group">
-        <label>ARTゲーム数</label>
-        <input type="number" id="g_art" value="0" inputmode="numeric" oninput="calculate()">
+        <div class="game-row">
+          <label>総ARTゲーム数</label>
+          <input type="number" id="g_art" value="0" inputmode="numeric" oninput="calculate()">
+        </div>
+        <div class="quick-btn-group">
+          <button class="quick-btn" onclick="addArtG(30)">+30G</button>
+          <button class="quick-btn" onclick="addArtG(50)">+50G</button>
+          <button class="quick-btn" onclick="addArtG(90)">+90G</button>
+        </div>
+        <div class="add-custom-group">
+          <input type="number" id="custom_art_g" placeholder="指定G数を加算" inputmode="numeric">
+          <button onclick="addCustomArtG()">加算</button>
+        </div>
       </div>
     </div>
 
+    <!-- ART中カウント（+1ボタン & 一括追加機能） -->
     <div class="card">
-      <div class="card-title">ART中 カウント</div>
+      <div class="card-title">ART中 小役カウント</div>
       <div class="counter-grid">
-        <script>
-          const artItems = [
-            {id: 29, title: "[29] ARTハズレ目"},
-            {id: 74, title: "[74] ART共通ベル"}
-          ];
-          artItems.forEach(item => {
-            document.write(`
-              <div class="counter-card">
-                <div class="counter-title">${item.title}</div>
-                <div class="counter-val" id="val_${item.id}">0</div>
-                <div class="btn-group">
-                  <button class="btn-sub" onclick="add(${item.id}, -1)">-</button>
-                  <button class="btn-add" onclick="add(${item.id}, 1)">+1</button>
-                </div>
-              </div>
-            `);
-          });
-        </script>
+        <div class="counter-card">
+          <div class="counter-title">[29] ARTハズレ目</div>
+          <div class="counter-val" id="val_29">0</div>
+          <button class="btn-count" onclick="count(29)">+1</button>
+          <div class="bulk-add-box">
+            <input type="number" id="bulk_29" placeholder="数値を入力" inputmode="numeric">
+            <button onclick="bulkAdd(29)">一括＋</button>
+          </div>
+        </div>
+        <div class="counter-card">
+          <div class="counter-title">[74] ART共通ベル</div>
+          <div class="counter-val" id="val_74">0</div>
+          <button class="btn-count" onclick="count(74)">+1</button>
+          <div class="bulk-add-box">
+            <input type="number" id="bulk_74" placeholder="数値を入力" inputmode="numeric">
+            <button onclick="bulkAdd(74)">一括＋</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- 固定表示：判別結果 -->
-  <div class="card" style="position: sticky; bottom: 8px; z-index: 100; box-shadow: 0 -4px 12px rgba(0,0,0,0.5);">
-    <div class="card-title" style="margin-bottom: 2px;">設定推測結果</div>
+  <!-- タブ3: 確率推移グラフ -->
+  <div id="tab-graph" class="tab-content">
+    <div class="card">
+      <div class="card-title">主要要素の設定別理論値 vs 実測値</div>
+      <div class="chart-container">
+        <canvas id="rateChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 画面下部固定：設定推測結果バー -->
+  <div class="sticky-result">
+    <div style="font-weight: bold; font-size: 0.75rem; color: var(--accent); margin-bottom: 2px;">設定推測期待度</div>
     <table class="result-table">
       <thead>
         <tr>
@@ -343,10 +474,11 @@
   </div>
 
   <script>
-    // 各項目のカウント状態保持
+    // 状態管理
+    let currentMode = 'add'; // 'add' or 'sub'
     const counts = {};
 
-    // 確率データ (設定1〜6)
+    // 確率データ設定 (設定1~6)
     const probs = {
       0: [605/65536, 612/65536, 619/65536, 625/65536, 634/65536, 651/65536],
       1: [514/65536, 519/65536, 526/65536, 528/65536, 531/65536, 535/65536],
@@ -370,11 +502,23 @@
       20: [0, 0, 0, 0, 0.05002, 0.05002],
       21: [0, 0, 0, 0, 0, 0.05002],
       22: [0.01172, 0.01563, 0.01563, 0.01953, 0.01953, 0.02344],
+      49: [0.79996, 0.79996, 0.74998, 0.74998, 0.74998, 0.74998],
+      50: [0.12003, 0.08002, 0.15001, 0.09668, 0.14401, 0.09332],
+      51: [0.08002, 0.12003, 0.10001, 0.14502, 0.09601, 0.13998],
+      52: [0, 0, 0, 0.00832, 0.00999, 0.00999],
+      53: [0, 0, 0, 0, 0, 0.00671],
+      54: [0.66667, 0.66667, 0.59999, 0.59999, 0.59999, 0.59999],
+      55: [0.20000, 0.13333, 0.24001, 0.15469, 0.23039, 0.14935],
+      56: [0.13333, 0.20000, 0.16000, 0.23204, 0.15359, 0.22403],
+      57: [0, 0, 0, 0.01328, 0.01602, 0.01602],
+      58: [0, 0, 0, 0, 0, 0.01060],
+      67: [0, 0.008, 0.008, 0.010, 0.010, 0.013],
       68: [0.40997, 0.40002, 0.40002, 0.40002, 0.40002, 0.40002],
       69: [0.32574, 0.14478, 0.21588, 0.14160, 0.20020, 0.12000],
       70: [0.21710, 0.21722, 0.14392, 0.21240, 0.13342, 0.17999],
       71: [0.04718, 0.23798, 0.24017, 0.24597, 0.13318, 0.14999],
-      72: [0, 0, 0, 0, 0.13318, 0.14999]
+      72: [0, 0, 0, 0, 0.13318, 0.14999],
+      73: [0, 0, 0, 0.03333, 0.03699, 0.04004]
     };
 
     const denomGroup = {
@@ -383,20 +527,73 @@
       11: 'g_normal', 12: 'g_normal', 13: 'g_normal', 29: 'g_art', 74: 'g_art'
     };
 
-    function add(id, delta) {
+    // 操作モード切替
+    function setMode(mode) {
+      currentMode = mode;
+      const addBtn = document.getElementById('mode-add-btn');
+      const subBtn = document.getElementById('mode-sub-btn');
+
+      if (mode === 'add') {
+        addBtn.className = 'mode-btn active-add';
+        subBtn.className = 'mode-btn';
+        document.body.classList.remove('sub-mode');
+      } else {
+        addBtn.className = 'mode-btn';
+        subBtn.className = 'mode-btn active-sub';
+        document.body.classList.add('sub-mode');
+      }
+    }
+
+    // カウント処理
+    function count(id) {
+      const delta = currentMode === 'add' ? 1 : -1;
       counts[id] = Math.max(0, (counts[id] || 0) + delta);
-      document.getElementById(`val_${id}`).innerText = counts[id];
+      const el = document.getElementById(`val_${id}`);
+      if (el) el.innerText = counts[id];
       calculate();
     }
 
+    // まとめ加算
+    function bulkAdd(id) {
+      const inputEl = document.getElementById(`bulk_${id}`);
+      const val = parseInt(inputEl.value) || 0;
+      if (val === 0) return;
+      counts[id] = Math.max(0, (counts[id] || 0) + val);
+      document.getElementById(`val_${id}`).innerText = counts[id];
+      inputEl.value = '';
+      calculate();
+    }
+
+    // ARTゲーム数クイック追加
+    function addArtG(amount) {
+      const el = document.getElementById('g_art');
+      const current = parseInt(el.value) || 0;
+      el.value = Math.max(0, current + amount);
+      calculate();
+    }
+
+    function addCustomArtG() {
+      const inputEl = document.getElementById('custom_art_g');
+      const amount = parseInt(inputEl.value) || 0;
+      if (amount === 0) return;
+      addArtG(amount);
+      inputEl.value = '';
+    }
+
+    // タブ切替
     function switchTab(tabName, evt) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       
       evt.target.classList.add('active');
       document.getElementById(`tab-${tabName}`).classList.add('active');
+
+      if (tabName === 'graph') {
+        updateChart();
+      }
     }
 
+    // ベイズ推定計算
     function calculate() {
       const gNormal = parseFloat(document.getElementById('g_normal').value) || 0;
       const gArt = parseFloat(document.getElementById('g_art').value) || 0;
@@ -404,8 +601,8 @@
       let logLikelihoods = [0, 0, 0, 0, 0, 0];
 
       for (let id in probs) {
-        const count = counts[id] || 0;
-        if (count <= 0) continue;
+        const c = counts[id] || 0;
+        if (c <= 0) continue;
 
         const pArr = probs[id];
         const denomId = denomGroup[id];
@@ -416,9 +613,9 @@
           if (p === 0) {
             logLikelihoods[s] += -Infinity;
           } else if (N && N > 0) {
-            logLikelihoods[s] += count * Math.log(p) + (N - count) * Math.log(1 - p);
+            logLikelihoods[s] += c * Math.log(p) + (N - c) * Math.log(1 - p);
           } else {
-            logLikelihoods[s] += count * Math.log(p);
+            logLikelihoods[s] += c * Math.log(p);
           }
         }
       }
@@ -453,6 +650,59 @@
       if (maxProbVal > 20) {
         document.getElementById(`res-${maxProbIndex}`).classList.add('highlight');
       }
+    }
+
+    // Chart.js グラフ描画
+    let rateChart = null;
+
+    function updateChart() {
+      const gNormal = parseFloat(document.getElementById('g_normal').value) || 0;
+      const gArt = parseFloat(document.getElementById('g_art').value) || 0;
+
+      // 実測確率（1/x）
+      constスイカRate = (counts[0] > 0 && gNormal > 0) ? (gNormal / counts[0]).toFixed(1) : 0;
+      const artハズレRate = (counts[29] > 0 && gArt > 0) ? (gArt / counts[29]).toFixed(1) : 0;
+
+      const ctx = document.getElementById('rateChart').getContext('2d');
+
+      if (rateChart) {
+        rateChart.destroy();
+      }
+
+      rateChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['スイカ(1/x)', 'ARTハズレ(1/x)'],
+          datasets: [
+            {
+              label: '実測値',
+              data: [スイカRate, artハズレRate],
+              backgroundColor: '#5bc0de'
+            },
+            {
+              label: '設定1理論値',
+              data: [108.3, 69.3],
+              backgroundColor: '#d9534f'
+            },
+            {
+              label: '設定6理論値',
+              data: [100.6, 58.0],
+              backgroundColor: '#5cb85c'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#ccc', font: { size: 10 } } }
+          },
+          scales: {
+            x: { ticks: { color: '#ccc' } },
+            y: { ticks: { color: '#ccc' }, title: { display: true, text: '確率分母 (小さいほど高確率)', color: '#aaa' } }
+          }
+        }
+      });
     }
   </script>
 </body>
