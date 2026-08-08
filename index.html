@@ -300,7 +300,7 @@
     <button class="reset-btn" onclick="resetAllData()">クリア</button>
   </div>
 
-  <!-- タブ切替 (4つのタブに拡張) -->
+  <!-- タブ切替 -->
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('normal', event)">通常時</button>
     <button class="tab-btn" onclick="switchTab('bonus', event)">ボーナス中</button>
@@ -317,6 +317,12 @@
           <label>通常ゲーム数</label>
           <input type="number" id="g_normal" value="0" inputmode="numeric" oninput="saveAndCalc()">
         </div>
+        <div class="quick-btn-group">
+          <button class="quick-btn" onclick="addNormalG(1)">+1G</button>
+          <button class="quick-btn" onclick="addNormalG(10)">+10G</button>
+          <button class="quick-btn" onclick="addNormalG(50)">+50G</button>
+          <button class="quick-btn" onclick="addNormalG(100)">+100G</button>
+        </div>
       </div>
     </div>
 
@@ -325,20 +331,12 @@
       <div class="card-title">通常時 単体小役・演出</div>
       <div class="counter-grid">
         <div class="counter-card" onclick="count(0)">
-          <div class="counter-title">[0] スイカ</div>
+          <div class="counter-title">スイカ</div>
           <div class="counter-val" id="val_0">0</div>
         </div>
         <div class="counter-card" onclick="count(1)">
-          <div class="counter-title">[1] 1枚役A</div>
+          <div class="counter-title">1枚役A</div>
           <div class="counter-val" id="val_1">0</div>
-        </div>
-        <div class="counter-card" onclick="count(45)">
-          <div class="counter-title">[45] オヤシロレアベル</div>
-          <div class="counter-val" id="val_45">0</div>
-        </div>
-        <div class="counter-card" onclick="count(47)">
-          <div class="counter-title">[47] ひぐらしハズレ</div>
-          <div class="counter-val" id="val_47">0</div>
         </div>
       </div>
     </div>
@@ -349,17 +347,17 @@
       <div class="counter-grid">
         <script>
           const bonusItems = [
-            {id: 3, title: "[3] 1枚役A+赤同色"},
-            {id: 4, title: "[4] 確定役+赤異色"},
-            {id: 5, title: "[5] スイカ+白同色"},
-            {id: 6, title: "[6] 単独白異色"},
-            {id: 7, title: "[7] リプ+白異色"},
-            {id: 8, title: "[8] 単独赤REG"},
-            {id: 9, title: "[9] 共通ベル+赤REG"},
-            {id: 10, title: "[10] スイカ+赤REG"},
-            {id: 11, title: "[11] 単独白REG"},
-            {id: 12, title: "[12] 共通ベル+白REG"},
-            {id: 13, title: "[13] 1枚役A+白REG"}
+            {id: 3, title: "1枚役A+赤同色"},
+            {id: 4, title: "確定役+赤異色"},
+            {id: 5, title: "スイカ+白同色"},
+            {id: 6, title: "単独白異色"},
+            {id: 7, title: "リプ+白異色"},
+            {id: 8, title: "単独赤REG"},
+            {id: 9, title: "共通ベル+赤REG"},
+            {id: 10, title: "スイカ+赤REG"},
+            {id: 11, title: "単独白REG"},
+            {id: 12, title: "共通ベル+白REG"},
+            {id: 13, title: "1枚役A+白REG"}
           ];
           bonusItems.forEach(item => {
             document.write(`
@@ -379,11 +377,11 @@
       <div class="counter-grid">
         <script>
           const group3 = [
-            {id: 19, title: "[19] にぱ～44%"},
-            {id: 20, title: "[20] にぱ～55%"},
-            {id: 21, title: "[21] にぱ～66%"},
-            {id: 22, title: "[22] CZナビ+2開始"},
-            {id: 73, title: "[73] 確定画面水着 (設4+)"}
+            {id: 19, title: "にぱ～44%"},
+            {id: 20, title: "にぱ～55%"},
+            {id: 21, title: "にぱ～66%"},
+            {id: 22, title: "CZナビ+2開始"},
+            {id: 73, title: "確定画面水着 (設4+)"}
           ];
           group3.forEach(item => {
             document.write(`
@@ -398,18 +396,48 @@
     </div>
   </div>
 
-  <!-- タブ2: ボーナス中 (ビタ押し示唆・富竹・REG・ボイス) -->
+  <!-- タブ2: ボーナス中 -->
   <div id="tab-bonus" class="tab-content">
+    <!-- ボーナスゲーム数入力 -->
+    <div class="card">
+      <div class="game-input-group">
+        <div class="game-row">
+          <label>ボーナス消費ゲーム数</label>
+          <input type="number" id="g_bonus" value="0" inputmode="numeric" oninput="saveAndCalc()">
+        </div>
+        <div class="quick-btn-group">
+          <button class="quick-btn" onclick="addBonusG(1)">+1G</button>
+          <button class="quick-btn" onclick="addBonusG(23)">+23G</button>
+          <button class="quick-btn" onclick="addBonusG(29)">+29G</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ボーナス中 小役カウント -->
+    <div class="card">
+      <div class="card-title">ボーナス中 小役・ハズレ</div>
+      <div class="counter-grid">
+        <div class="counter-card" onclick="count(45)">
+          <div class="counter-title">オヤシロレアベル</div>
+          <div class="counter-val" id="val_45">0</div>
+        </div>
+        <div class="counter-card" onclick="count(47)">
+          <div class="counter-title">ひぐらしハズレ</div>
+          <div class="counter-val" id="val_47">0</div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">BB中 ビタ押し成功時ボイス（1周）</div>
       <div class="counter-grid">
         <script>
           const bita1 = [
-            {id: 49, title: "[49] ビタ1周: 通常"},
-            {id: 50, title: "[50] ビタ1周: 奇数示唆"},
-            {id: 51, title: "[51] ビタ1周: 偶数示唆"},
-            {id: 52, title: "[52] ビタ1周: AM (設4+)"},
-            {id: 53, title: "[53] ビタ1周: ミニキャラ(設6)"}
+            {id: 49, title: "ビタ1周: 通常"},
+            {id: 50, title: "ビタ1周: 奇数示唆"},
+            {id: 51, title: "ビタ1周: 偶数示唆"},
+            {id: 52, title: "ビタ1周: AM (設4+)"},
+            {id: 53, title: "ビタ1周: ミニキャラ(設6)"}
           ];
           bita1.forEach(item => {
             document.write(`
@@ -428,11 +456,11 @@
       <div class="counter-grid">
         <script>
           const bita2 = [
-            {id: 54, title: "[54] ビタ2周: 通常"},
-            {id: 55, title: "[55] ビタ2周: 奇数示唆"},
-            {id: 56, title: "[56] ビタ2周: 偶数示唆"},
-            {id: 57, title: "[57] ビタ2周: AM (设4+)"},
-            {id: 58, title: "[58] ビタ2周: ミニキャラ(設6)"}
+            {id: 54, title: "ビタ2周: 通常"},
+            {id: 55, title: "ビタ2周: 奇数示唆"},
+            {id: 56, title: "ビタ2周: 偶数示唆"},
+            {id: 57, title: "ビタ2周: AM (設4+)"},
+            {id: 58, title: "ビタ2周: ミニキャラ(設6)"}
           ];
           bita2.forEach(item => {
             document.write(`
@@ -451,13 +479,13 @@
       <div class="counter-grid">
         <script>
           const regItems = [
-            {id: 48, title: "[48] 富竹斜めBAR"},
-            {id: 67, title: "[67] REG金背景 (設2+)"},
-            {id: 68, title: "[68] 嫌な事件だったね"},
-            {id: 69, title: "[69] この世界はもう…"},
-            {id: 70, title: "[70] はぁガッカリ"},
-            {id: 71, title: "[71] 静かな夜ね"},
-            {id: 72, title: "[72] いやああああ (設5+)"}
+            {id: 48, title: "富竹斜めBAR"},
+            {id: 67, title: "REG金背景 (設2+)"},
+            {id: 68, title: "嫌な事件だったね"},
+            {id: 69, title: "この世界はもう…"},
+            {id: 70, title: "はぁガッカリ"},
+            {id: 71, title: "静かな夜ね"},
+            {id: 72, title: "いやああああ (設5+)"}
           ];
           regItems.forEach(item => {
             document.write(`
@@ -497,7 +525,7 @@
       <div class="card-title">ART中 小役カウント</div>
       <div class="counter-grid">
         <div class="counter-card" onclick="count(29)">
-          <div class="counter-title">[29] ARTハズレ目</div>
+          <div class="counter-title">ARTハズレ目</div>
           <div class="counter-val" id="val_29">0</div>
           <div class="bulk-add-box" onclick="event.stopPropagation();">
             <input type="number" id="bulk_29" placeholder="数値" inputmode="numeric">
@@ -505,7 +533,7 @@
           </div>
         </div>
         <div class="counter-card" onclick="count(74)">
-          <div class="counter-title">[74] ART共通ベル</div>
+          <div class="counter-title">ART共通ベル</div>
           <div class="counter-val" id="val_74">0</div>
           <div class="bulk-add-box" onclick="event.stopPropagation();">
             <input type="number" id="bulk_74" placeholder="数値" inputmode="numeric">
@@ -602,7 +630,8 @@
     const denomGroup = {
       0: 'g_normal', 1: 'g_normal', 3: 'g_normal', 4: 'g_normal', 5: 'g_normal',
       6: 'g_normal', 7: 'g_normal', 8: 'g_normal', 9: 'g_normal', 10: 'g_normal',
-      11: 'g_normal', 12: 'g_normal', 13: 'g_normal', 29: 'g_art', 74: 'g_art'
+      11: 'g_normal', 12: 'g_normal', 13: 'g_normal', 29: 'g_art', 74: 'g_art',
+      45: 'g_bonus', 47: 'g_bonus'
     };
 
     // 読み込み時：自動復元
@@ -620,6 +649,7 @@
       const data = {
         counts: counts,
         g_normal: document.getElementById('g_normal').value,
+        g_bonus: document.getElementById('g_bonus') ? document.getElementById('g_bonus').value : 0,
         g_art: document.getElementById('g_art').value
       };
       localStorage.setItem('higurashi_counter_data', JSON.stringify(data));
@@ -633,6 +663,9 @@
         const data = JSON.parse(saved);
         counts = data.counts || {};
         document.getElementById('g_normal').value = data.g_normal || 0;
+        if (document.getElementById('g_bonus')) {
+          document.getElementById('g_bonus').value = data.g_bonus || 0;
+        }
         document.getElementById('g_art').value = data.g_art || 0;
 
         // 画面の数値表示更新
@@ -652,6 +685,9 @@
         localStorage.removeItem('higurashi_counter_data');
         counts = {};
         document.getElementById('g_normal').value = 0;
+        if (document.getElementById('g_bonus')) {
+          document.getElementById('g_bonus').value = 0;
+        }
         document.getElementById('g_art').value = 0;
         document.querySelectorAll('.counter-val').forEach(el => el.innerText = 0);
         calculate();
@@ -695,6 +731,22 @@
       saveAndCalc();
     }
 
+    // 通常ゲーム数加算
+    function addNormalG(amount) {
+      const el = document.getElementById('g_normal');
+      const current = parseInt(el.value) || 0;
+      el.value = Math.max(0, current + amount);
+      saveAndCalc();
+    }
+
+    // ボーナスゲーム数加算
+    function addBonusG(amount) {
+      const el = document.getElementById('g_bonus');
+      const current = parseInt(el.value) || 0;
+      el.value = Math.max(0, current + amount);
+      saveAndCalc();
+    }
+
     // ARTゲーム数加算
     function addArtG(amount) {
       const el = document.getElementById('g_art');
@@ -727,6 +779,7 @@
     // 推測計算
     function calculate() {
       const gNormal = parseFloat(document.getElementById('g_normal').value) || 0;
+      const gBonus = document.getElementById('g_bonus') ? parseFloat(document.getElementById('g_bonus').value) || 0 : 0;
       const gArt = parseFloat(document.getElementById('g_art').value) || 0;
 
       let logLikelihoods = [0, 0, 0, 0, 0, 0];
@@ -737,7 +790,10 @@
 
         const pArr = probs[id];
         const denomId = denomGroup[id];
-        const N = denomId === 'g_normal' ? gNormal : (denomId === 'g_art' ? gArt : null);
+        let N = null;
+        if (denomId === 'g_normal') N = gNormal;
+        else if (denomId === 'g_bonus') N = gBonus;
+        else if (denomId === 'g_art') N = gArt;
 
         for (let s = 0; s < 6; s++) {
           const p = pArr[s];
