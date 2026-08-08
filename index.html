@@ -2,797 +2,351 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ひぐらし設定判別 & 小役カウンター</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ひぐらし祭2 設定判別ツール</title>
   <style>
     :root {
-      --bg-main: #121212;
-      --bg-panel: #1e1e1e;
-      --fg-text: #ffffff;
-      --fg-sub: #aaaaaa;
-      --accent-blue: #007bff;
-      --accent-green: #28a745;
-      --accent-red: #dc3545;
-      --accent-yellow: #ffc107;
-      --accent-purple: #6f42c1;
+      --primary: #d9534f;
+      --bg: #1e1e24;
+      --card-bg: #2b2b36;
+      --text: #f4f4f6;
+      --accent: #5bc0de;
     }
-
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
     body {
-      background-color: var(--bg-main);
-      color: var(--fg-text);
-      height: 100vh;
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      padding: 6px;
-      gap: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 12px;
     }
-
-    /* 最上部：タブ切替バー */
-    .tab-bar {
+    h1 {
+      font-size: 1.2rem;
+      text-align: center;
+      margin-bottom: 12px;
+      color: var(--primary);
+    }
+    .tabs {
       display: flex;
       gap: 4px;
-      flex-shrink: 0;
+      margin-bottom: 12px;
+      background: var(--card-bg);
+      padding: 4px;
+      border-radius: 8px;
     }
-
     .tab-btn {
       flex: 1;
-      padding: 8px 0;
-      background-color: var(--bg-panel);
-      border: 1px solid #333;
-      border-radius: 6px;
-      color: var(--fg-sub);
-      font-size: 13px;
+      padding: 10px 4px;
+      background: transparent;
+      border: none;
+      color: #aaa;
       font-weight: bold;
       cursor: pointer;
-      text-align: center;
+      border-radius: 6px;
+      font-size: 0.85rem;
     }
-
     .tab-btn.active {
+      background: var(--primary);
       color: #fff;
-      background-color: var(--accent-blue);
-      border-color: var(--accent-blue);
     }
-
-    /* タブコンテンツ領域 */
     .tab-content {
-      flex: 1;
       display: none;
-      flex-direction: column;
-      gap: 6px;
-      overflow: hidden;
     }
     .tab-content.active {
-      display: flex;
+      display: block;
     }
-
-    /* 上部：G数＆モード管理（共通） */
-    .top-section {
-      background-color: var(--bg-panel);
-      border-radius: 8px;
-      padding: 6px 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-
-    .row-1 {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .mode-btn {
-      padding: 4px 10px;
-      background-color: #2a2a2a;
-      color: var(--accent-green);
-      border: 1px solid var(--accent-green);
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 11px;
-      cursor: pointer;
-    }
-
-    .mode-btn.minus-active {
-      background-color: var(--accent-red);
-      color: #fff;
-      border-color: var(--accent-red);
-    }
-
-    .sub-btn {
-      background-color: #2a2a2a;
-      color: var(--fg-sub);
-      border: none;
-      padding: 3px 6px;
-      border-radius: 4px;
-      font-size: 10px;
-      cursor: pointer;
-    }
-    .sub-btn.yellow { color: var(--accent-yellow); font-weight: bold; }
-
-    .g-display {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-    }
-
-    .my-g {
-      font-size: 24px;
-      font-weight: 900;
-      color: var(--accent-green);
-      line-height: 1;
-    }
-
-    .sub-g-info {
-      font-size: 11px;
-      color: var(--fg-sub);
-      text-align: right;
-    }
-
-    .btn-grid {
-      display: flex;
-      gap: 4px;
-    }
-
-    .add-g-btn {
-      flex: 1;
-      padding: 6px 0;
-      border: none;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 11px;
-      color: #fff;
-      cursor: pointer;
-    }
-
-    /* 2列巨大ボタンエリア */
-    .counter-grid-2col {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      overflow-y: auto;
-    }
-
-    .role-card {
-      background-color: var(--bg-panel);
-      border-radius: 8px;
-      border: 2px solid transparent;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 8px;
-      cursor: pointer;
-      min-height: 70px;
-    }
-
-    .role-card:active {
-      opacity: 0.8;
-      transform: scale(0.98);
-    }
-
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-
-    .role-name {
-      font-size: 13px;
-      font-weight: bold;
-    }
-
-    .role-prob {
-      font-size: 11px;
-      color: var(--fg-sub);
-      font-family: monospace;
-    }
-
-    .card-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-    }
-
-    .role-count {
-      font-size: 26px;
-      font-weight: 900;
-      font-family: monospace;
-      line-height: 1;
-    }
-
-    .action-icon {
-      font-size: 18px;
-      font-weight: bold;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-    }
-
-    /* --- 設定判別画面用 --- */
-    .eval-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      overflow: hidden;
-    }
-
-    .setting-prob-box {
-      background: var(--bg-panel);
-      border-radius: 8px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .setting-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .setting-label {
-      width: 45px;
-      font-weight: bold;
-      font-size: 12px;
-    }
-
-    .progress-bg {
-      flex: 1;
-      height: 16px;
-      background: #333;
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #007bff, #28a745);
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-
-    .setting-val {
-      width: 45px;
-      text-align: right;
-      font-size: 12px;
-      font-weight: bold;
-      font-family: monospace;
-    }
-
-    .input-list-scroll {
-      flex: 1;
-      background: var(--bg-panel);
-      border-radius: 8px;
-      padding: 8px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .eval-item-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #252525;
-      padding: 6px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-    }
-
-    .eval-item-title {
-      font-weight: bold;
-      flex: 1;
-    }
-
-    .eval-item-counter {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .eval-cnt-btn {
-      width: 28px;
-      height: 28px;
-      background: #3a3a3a;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .eval-cnt-val {
-      font-weight: bold;
-      font-family: monospace;
-      min-width: 24px;
-      text-align: center;
-      font-size: 14px;
-    }
-
-    /* 下部ナビ */
-    .bottom-bar {
-      display: flex;
-      justify-content: space-between;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-
-    .nav-btn {
-      flex: 1;
-      padding: 8px 0;
-      background-color: var(--bg-panel);
-      border: 1px solid #333;
-      border-radius: 4px;
-      color: var(--fg-sub);
-      font-size: 11px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    /* モーダル */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.85);
-      z-index: 100;
-      flex-direction: column;
+    .card {
+      background: var(--card-bg);
       padding: 12px;
-    }
-    .modal.active { display: flex; }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      border-radius: 8px;
       margin-bottom: 12px;
     }
-    .modal-close {
-      background: var(--accent-red);
-      color: #fff;
-      border: none;
-      padding: 4px 12px;
-      border-radius: 4px;
+    .card-title {
       font-weight: bold;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 4px;
     }
-    .modal-body {
-      flex: 1;
-      overflow-y: auto;
-      background: var(--bg-panel);
-      border-radius: 8px;
-      padding: 12px;
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
     }
-    .setting-item {
+    .input-group {
       display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 0;
+      flex-direction: column;
+    }
+    label {
+      font-size: 0.75rem;
+      margin-bottom: 2px;
+      color: #ccc;
+    }
+    input {
+      background: #141419;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    input:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    .result-table th, .result-table td {
+      padding: 8px 4px;
+      text-align: center;
       border-bottom: 1px solid #333;
+      font-size: 0.85rem;
+    }
+    .result-table th {
+      background: #202028;
+    }
+    .highlight {
+      color: #5cb85c;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
-  <!-- 最上部 タブ切替 -->
-  <div class="tab-bar">
-    <div id="tabBtnCounter" class="tab-btn active" onclick="switchTab('counter')">🎰 メインカウンター</div>
-    <div id="tabBtnEval" class="tab-btn" onclick="switchTab('eval')">📊 ひぐらし設定判別</div>
+  <h1>ひぐらし祭2 設定判別</h1>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('normal')">通常・ART</button>
+    <button class="tab-btn" onclick="switchTab('bonus')">ボーナス中</button>
+    <button class="tab-btn" onclick="switchTab('演出')">演出・示唆</button>
   </div>
 
-  <!-- 上部：G数＆モード管理（共通） -->
-  <div class="top-section">
-    <div class="row-1">
-      <button id="btnMinusMode" class="mode-btn" onclick="toggleMinusMode()">＋ 加算</button>
-      <div>
-        <button id="btnToggleBase" class="sub-btn yellow" onclick="toggleCalcBase()">個人G</button>
-        <button class="sub-btn" onclick="setStartGame()">始: <span id="lblStartVal">0</span></button>
-        <button class="sub-btn" onclick="setTotalGame()">総: <span id="lblTotalVal">0</span></button>
+  <!-- タブ1: 通常時・ART -->
+  <div id="tab-normal" class="tab-content active">
+    <div class="card">
+      <div class="card-title">ゲーム数入力</div>
+      <div class="input-grid">
+        <div class="input-group">
+          <label>通常ゲーム数</label>
+          <input type="number" id="g_normal" value="0" oninput="calculate()">
+        </div>
+        <div class="input-group">
+          <label>ARTゲーム数</label>
+          <input type="number" id="g_art" value="0" oninput="calculate()">
+        </div>
       </div>
     </div>
 
-    <div class="g-display">
-      <div id="lblMyGame" class="my-g">0 <span style="font-size:14px; color:#fff">G</span></div>
-      <div class="sub-g-info" id="lblSubGInfo">総 0G / 始 0G</div>
-    </div>
-
-    <div class="btn-grid">
-      <button class="add-g-btn" style="background-color: var(--accent-green)" onclick="addGames(1)">+1</button>
-      <button class="add-g-btn" style="background-color: var(--accent-blue)" onclick="addGames(10)">+10</button>
-      <button class="add-g-btn" style="background-color: var(--accent-yellow); color:#000" onclick="addGames(50)">+50</button>
-      <button class="add-g-btn" style="background-color: var(--accent-purple)" onclick="addGames(100)">+100</button>
-    </div>
-  </div>
-
-  <!-- TAB 1: カウンター画面 -->
-  <div id="tabContentCounter" class="tab-content active">
-    <div id="counterGrid" class="counter-grid-2col"></div>
-  </div>
-
-  <!-- TAB 2: 設定判別画面 -->
-  <div id="tabContentEval" class="tab-content">
-    <div class="eval-container">
-      <!-- 設定推測確率グラフ・数値 -->
-      <div class="setting-prob-box">
-        <div style="font-size: 11px; color: var(--fg-sub); text-align: center; margin-bottom: 2px;">設定推測結果（ベイズ推定値）</div>
-        <div id="settingProbList"></div>
+    <div class="card">
+      <div class="card-title">小役・特定ボーナス (通常時)</div>
+      <div class="input-grid">
+        <div class="input-group"><label>[0] スイカ</label><input type="number" id="c_0" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[1] 1枚役A</label><input type="number" id="c_1" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[2] ベル揃い</label><input type="number" id="c_2" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[3] 1枚役A+赤同色</label><input type="number" id="c_3" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[4] 確定役+赤異色</label><input type="number" id="c_4" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[5] スイカ+白同色</label><input type="number" id="c_5" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[6] 単独白異色</label><input type="number" id="c_6" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[7] リプ+白異色</label><input type="number" id="c_7" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[8] 単独赤REG</label><input type="number" id="c_8" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[9] 共通ベル+赤REG</label><input type="number" id="c_9" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[10] スイカ+赤REG</label><input type="number" id="c_10" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[11] 単独白REG</label><input type="number" id="c_11" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[12] 共通ベル+白REG</label><input type="number" id="c_12" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[13] 1枚役A+白REG</label><input type="number" id="c_13" value="0" oninput="calculate()"></div>
       </div>
+    </div>
 
-      <!-- ひぐらし専用要素 入力リスト -->
-      <div class="input-list-scroll" id="evalInputList"></div>
+    <div class="card">
+      <div class="card-title">ART中要素</div>
+      <div class="input-grid">
+        <div class="input-group"><label>[29] ARTハズレ目</label><input type="number" id="c_29" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[74] ART共通ベル</label><input type="number" id="c_74" value="0" oninput="calculate()"></div>
+      </div>
     </div>
   </div>
 
-  <!-- 下部：操作バー -->
-  <div class="bottom-bar">
-    <button class="nav-btn" onclick="openModal('modalHistory')">📈 確率推移</button>
-    <button class="nav-btn" onclick="openModal('modalSetting')">⚙ 表示カスタム</button>
-    <button class="nav-btn" style="color:var(--accent-red)" onclick="resetAll()">全リセット</button>
-  </div>
-
-  <!-- モーダル：グラフ -->
-  <div id="modalHistory" class="modal">
-    <div class="modal-header">
-      <h3>確率推移グラフ</h3>
-      <button class="modal-close" onclick="closeModal('modalHistory')">閉じる</button>
-    </div>
-    <div class="modal-body">
-      <canvas id="chartCanvas"></canvas>
+  <!-- タブ2: ボーナス中 -->
+  <div id="tab-bonus" class="tab-content">
+    <div class="card">
+      <div class="card-title">ボーナス中要素</div>
+      <div class="input-grid">
+        <div class="input-group"><label>[45] オヤシロレアベル</label><input type="number" id="c_45" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[47] ひぐらしハズレ</label><input type="number" id="c_47" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[48] 富竹斜めBAR</label><input type="number" id="c_48" value="0" oninput="calculate()"></div>
+      </div>
     </div>
   </div>
 
-  <!-- モーダル：設定 -->
-  <div id="modalSetting" class="modal">
-    <div class="modal-header">
-      <h3>カウンター表示選択</h3>
-      <button class="modal-close" onclick="closeModal('modalSetting')">閉じる</button>
+  <!-- タブ3: 演出・ボイス -->
+  <div id="tab-演出" class="tab-content">
+    <div class="card">
+      <div class="card-title">にぱ～演出 / CZ</div>
+      <div class="input-grid">
+        <div class="input-group"><label>[19] にぱ～44%</label><input type="number" id="c_19" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[20] にぱ～55%</label><input type="number" id="c_20" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[21] にぱ～66%</label><input type="number" id="c_21" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[22] CZナビ+2開始</label><input type="number" id="c_22" value="0" oninput="calculate()"></div>
+      </div>
     </div>
-    <div class="modal-body" id="settingList"></div>
+    <div class="card">
+      <div class="card-title">CZ即転落時ボイス</div>
+      <div class="input-grid">
+        <div class="input-group"><label>[68] 嫌な事件だったね</label><input type="number" id="c_68" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[69] この世界はもう…</label><input type="number" id="c_69" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[70] はぁガッカリ</label><input type="number" id="c_70" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[71] 静かな夜ね</label><input type="number" id="c_71" value="0" oninput="calculate()"></div>
+        <div class="input-group"><label>[72] いやああああ</label><input type="number" id="c_72" value="0" oninput="calculate()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 推定結果（常時表示） -->
+  <div class="card">
+    <div class="card-title">判別結果 (二項分布確率計算)</div>
+    <table class="result-table">
+      <thead>
+        <tr>
+          <th>設定</th>
+          <th>設定1</th>
+          <th>設定2</th>
+          <th>設定3</th>
+          <th>設定4</th>
+          <th>設定5</th>
+          <th>設定6</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>推測値</td>
+          <td id="res-1">16.6%</td>
+          <td id="res-2">16.6%</td>
+          <td id="res-3">16.6%</td>
+          <td id="res-4">16.6%</td>
+          <td id="res-5">16.6%</td>
+          <td id="res-6">16.6%</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <script>
-    // --- ひぐらし設定差フルデータ (各設定の確率 / 65536または%) ---
-    const higurashiData = [
-      { id: "スイカ", name: "スイカ", type: "game", p: [605/65536, 612/65536, 619/65536, 625/65536, 634/65536, 651/65536] },
-      { id: "1枚役A", name: "1枚役A", type: "game", p: [514/65536, 519/65536, 526/65536, 528/65536, 531/65536, 535/65536] },
-      { id: "1枚役A_赤同色", name: "1枚役A＋赤同色", type: "game", p: [4/65536, 4/65536, 4/65536, 4/65536, 5/65536, 6/65536] },
-      { id: "確定役_赤異色", name: "確定役＋赤異色", type: "game", p: [4/65536, 5/65536, 7/65536, 9/65536, 10/65536, 11/65536] },
-      { id: "スイカ_白同色", name: "スイカ＋白同色", type: "game", p: [4/65536, 4/65536, 4/65536, 4/65536, 6/65536, 6/65536] },
-      { id: "単独白異色", name: "単独白異色", type: "game", p: [4/65536, 5/65536, 7/65536, 8/65536, 8/65536, 8/65536] },
-      { id: "通常リプ_白異色", name: "通常リプ＋白異色", type: "game", p: [4/65536, 5/65536, 6/65536, 9/65536, 9/65536, 10/65536] },
-      { id: "単独赤REG", name: "単独赤REG", type: "game", p: [8/65536, 8/65536, 8/65536, 9/65536, 9/65536, 11/65536] },
-      { id: "共通ベル_赤REG", name: "共通ベル＋赤REG", type: "game", p: [13/65536, 14/65536, 15/65536, 18/65536, 18/65536, 18/65536] },
-      { id: "スイカ_赤REG", name: "スイカ＋赤REG", type: "game", p: [6/65536, 7/65536, 8/65536, 8/65536, 9/65536, 10/65536] },
-      { id: "単独白REG", name: "単独白REG", type: "game", p: [7/65536, 7/65536, 8/65536, 8/65536, 10/65536, 11/65536] },
-      { id: "共通ベル_白REG", name: "共通ベル＋白REG", type: "game", p: [15/65536, 15/65536, 16/65536, 18/65536, 20/65536, 20/65536] },
-      { id: "1枚役A_白REG", name: "1枚役A＋白REG", type: "game", p: [16/65536, 17/65536, 18/65536, 18/65536, 18/65536, 19/65536] },
-      { id: "にぱ55", name: "にぱ〜演出55%", type: "event", p: [0, 0, 0, 0, 0.05002, 0.05002] },
-      { id: "にぱ66", name: "にぱ〜演出66%", type: "event", p: [0, 0, 0, 0, 0, 0.05002] },
-      { id: "ナビ_オヤシロB", name: "ナビ率(オヤシロB後)", type: "event", p: [0.70313, 0.71094, 0.72656, 0.74219, 0.78125, 0.80078] },
-      { id: "ナビ_ひぐらしB", name: "ナビ率(ひぐらしB後)", type: "event", p: [0.05078, 0.05469, 0.05859, 0.08594, 0.10156, 0.12500] },
-      { id: "ナビ_REG_ART", name: "ナビ率(REG/ART後)", type: "event", p: [0.01563, 0.01953, 0.02344, 0.03906, 0.05078, 0.05859] },
-      { id: "ARTハズレ", name: "ART中ハズレ目", type: "game", p: [945/65536, 992/65536, 1013/65536, 1073/65536, 1113/65536, 1130/65536] },
-      { id: "オヤシロ_レアベル", name: "オヤシロBレアベル", type: "game", p: [330/65536, 360/65536, 390/65536, 420/65536, 480/65536, 600/65536] },
-      { id: "ひぐらし_ハズレ", name: "ひぐらしBハズレ", type: "game", p: [1926/65536, 2066/65536, 2206/65536, 2346/65536, 2486/65536, 2626/65536] },
-      { id: "富竹_BAR斜め", name: "富竹B BAR斜め揃い", type: "game", p: [84/65536, 94/65536, 104/65536, 214/65536, 276/65536, 370/65536] },
-      { id: "ビタ1_エンジェル", name: "ビタ1周目 エンジェル", type: "event", p: [0, 0, 0, 0.00832, 0.00999, 0.00999] },
-      { id: "ビタ1_ミニキャラ", name: "ビタ1周目 ミニキャラ", type: "event", p: [0, 0, 0, 0, 0, 0.00671] },
-      { id: "BIG初回_魅音", name: "BIG初回 魅音", type: "event", p: [0.02499, 0, 0.01999, 0.01999, 0.01999, 0.01999] },
-      { id: "BIG初回_詩音", name: "BIG初回 詩音", type: "event", p: [0, 0.02499, 0.02499, 0.01999, 0.01999, 0.01999] },
-      { id: "BIG初回_梨花", name: "BIG初回 梨花", type: "event", p: [0, 0, 0.01999, 0.01999, 0.01999, 0.01999] },
-      { id: "REG_金", name: "REG中 金背景", type: "event", p: [0, 0.008, 0.008, 0.010, 0.010, 0.013] },
-      { id: "CZ即転_いやああ", name: "CZ即転落 いやああああ", type: "event", p: [0, 0, 0, 0, 0.13318, 0.14999] },
-      { id: "確定水着", name: "ボーナス確定水着", type: "event", p: [0, 0, 0, 0.03333, 0.03699, 0.04004] },
-      { id: "AT共通ベル", name: "AT中共通ベル", type: "game", p: [1/18.70, 1/17.88, 1/17.04, 1/15.86, 1/15.09, 1/14.83] }
-    ];
+    // 確率テーブル設定 (設定1~6)
+    const probs = {
+      // 通常時
+      0: [605/65536, 612/65536, 619/65536, 625/65536, 634/65536, 651/65536],
+      1: [514/65536, 519/65536, 526/65536, 528/65536, 531/65536, 535/65536],
+      2: [1/6.4, 1/6.3, 1/6.2, 1/6.0, 1/5.9, 1/5.9],
+      3: [4/65536, 4/65536, 4/65536, 4/65536, 5/65536, 6/65536],
+      4: [4/65536, 5/65536, 7/65536, 9/65536, 10/65536, 11/65536],
+      5: [4/65536, 4/65536, 4/65536, 4/65536, 6/65536, 6/65536],
+      6: [4/65536, 5/65536, 7/65536, 8/65536, 8/65536, 8/65536],
+      7: [4/65536, 5/65536, 6/65536, 9/65536, 9/65536, 10/65536],
+      8: [8/65536, 8/65536, 8/65536, 9/65536, 9/65536, 11/65536],
+      9: [13/65536, 14/65536, 15/65536, 18/65536, 18/65536, 18/65536],
+      10: [6/65536, 7/65536, 8/65536, 8/65536, 9/65536, 10/65536],
+      11: [7/65536, 7/65536, 8/65536, 8/65536, 10/65536, 11/65536],
+      12: [15/65536, 15/65536, 16/65536, 18/65536, 20/65536, 20/65536],
+      13: [16/65536, 17/65536, 18/65536, 18/65536, 18/65536, 19/65536],
+      // ART中
+      29: [945/65536, 992/65536, 1013/65536, 1073/65536, 1113/65536, 1130/65536],
+      74: [1/18.70, 1/17.88, 1/17.04, 1/15.86, 1/15.09, 1/14.83],
+      // ボーナス中
+      45: [330/65536, 360/65536, 390/65536, 420/65536, 480/65536, 600/65536],
+      47: [1926/65536, 2066/65536, 2206/65536, 2346/65536, 2486/65536, 2626/65536],
+      48: [84/65536, 94/65536, 104/65536, 214/65536, 276/65536, 370/65536],
+      // 演出
+      19: [0.13333, 0.13333, 0.13333, 0.26666, 0.26666, 0.26666],
+      20: [0, 0, 0, 0, 0.05002, 0.05002],
+      21: [0, 0, 0, 0, 0, 0.05002],
+      22: [0.01172, 0.01563, 0.01563, 0.01953, 0.01953, 0.02344],
+      // CZ即転落ボイス
+      68: [0.40997, 0.40002, 0.40002, 0.40002, 0.40002, 0.40002],
+      69: [0.32574, 0.14478, 0.21588, 0.14160, 0.20020, 0.12000],
+      70: [0.21710, 0.21722, 0.14392, 0.21240, 0.13342, 0.17999],
+      71: [0.04718, 0.23798, 0.24017, 0.24597, 0.13318, 0.14999],
+      72: [0, 0, 0, 0, 0.13318, 0.14999]
+    };
 
-    // メインカウンターで扱う項目
-    const rolesConfig = [
-      { id: "スイカ", name: "スイカ", active: true, color: "#28a745" },
-      { id: "1枚役A", name: "1枚役A", active: true, color: "#007bff" },
-      { id: "1枚役A_赤同色", name: "1枚A+赤同", active: true, color: "#dc3545" },
-      { id: "確定役_赤異色", name: "確定+赤異", active: true, color: "#ff3344" },
-      { id: "スイカ_赤REG", name: "スイカ+赤REG", active: true, color: "#ff9900" },
-      { id: "共通ベル_白REG", name: "共ベル+白REG", active: true, color: "#ffc107" }
-    ];
-
-    let startGames = 0;
-    let myGames = 0;
-    let useMyGamesForProb = true;
-    let isMinusMode = false;
-    let evalCounts = {};
-    let historyData = [];
-    let chartInstance = null;
-
-    // 全項目のカウント初期化
-    higurashiData.forEach(item => evalCounts[item.id] = 0);
-    recordHistory();
-
-    function getTotalGames() { return startGames + myGames; }
-    function getCalcBaseGames() { return useMyGamesForProb ? myGames : getTotalGames(); }
+    // 分母が必要な入力項目の対応付け
+    const denomGroup = {
+      0: 'g_normal', 1: 'g_normal', 2: 'g_normal', 3: 'g_normal', 4: 'g_normal',
+      5: 'g_normal', 6: 'g_normal', 7: 'g_normal', 8: 'g_normal', 9: 'g_normal',
+      10: 'g_normal', 11: 'g_normal', 12: 'g_normal', 13: 'g_normal',
+      29: 'g_art', 74: 'g_art'
+    };
 
     function switchTab(tabName) {
-      document.getElementById("tabBtnCounter").classList.toggle("active", tabName === 'counter');
-      document.getElementById("tabBtnEval").classList.toggle("active", tabName === 'eval');
-      document.getElementById("tabContentCounter").classList.toggle("active", tabName === 'counter');
-      document.getElementById("tabContentEval").classList.toggle("active", tabName === 'eval');
-      if (tabName === 'eval') calculateEval();
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
     }
 
-    function recordHistory() {
-      const calcG = getCalcBaseGames();
-      const last = historyData[historyData.length - 1];
-      if (last && last.myGames === myGames) {
-        last.counts = { ...evalCounts };
-        last.calcGames = calcG;
-      } else {
-        historyData.push({ myGames: myGames, calcGames: calcG, counts: { ...evalCounts } });
-      }
-    }
+    function calculate() {
+      const gNormal = parseFloat(document.getElementById('g_normal').value) || 0;
+      const gArt = parseFloat(document.getElementById('g_art').value) || 0;
 
-    function renderCounter() {
-      const grid = document.getElementById("counterGrid");
-      grid.innerHTML = "";
-      const baseG = getCalcBaseGames();
+      // 対数尤度 (Log-likelihood) で計算
+      let logLikelihoods = [0, 0, 0, 0, 0, 0];
 
-      rolesConfig.forEach(role => {
-        if (!role.active) return;
-        const count = evalCounts[role.id] || 0;
-        const probStr = (count > 0 && baseG > 0) ? `1/${(baseG / count).toFixed(1)}` : "1/--";
-        const btnText = isMinusMode ? "－" : "＋";
-        const iconBg = isMinusMode ? "var(--accent-red)" : role.color;
+      for (let id in probs) {
+        const count = parseFloat(document.getElementById(`c_${id}`)?.value) || 0;
+        if (count <= 0) continue;
 
-        const card = document.createElement("div");
-        card.className = "role-card";
-        card.style.borderColor = role.color;
-        card.onclick = () => countRole(role.id);
+        const pArr = probs[id];
+        const denomId = denomGroup[id];
+        const N = denomId === 'g_normal' ? gNormal : (denomId === 'g_art' ? gArt : null);
 
-        card.innerHTML = `
-          <div class="card-top">
-            <div>
-              <div class="role-name" style="color:${role.color}">${role.name}</div>
-              <div class="role-prob">${probStr}</div>
-            </div>
-            <div class="action-icon" style="background-color:${iconBg}">${btnText}</div>
-          </div>
-          <div class="card-bottom">
-            <div class="role-count">${count}</div>
-            <span style="font-size:10px; color:var(--fg-sub);">回</span>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-
-      document.getElementById("lblMyGame").innerHTML = `${myGames} <span style="font-size:14px; color:#fff">G</span>`;
-      document.getElementById("lblStartVal").innerText = startGames;
-      document.getElementById("lblTotalVal").innerText = getTotalGames();
-      document.getElementById("lblSubGInfo").innerText = `総 ${getTotalGames()}G / 始 ${startGames}G`;
-    }
-
-    function renderEvalInputs() {
-      const list = document.getElementById("evalInputList");
-      list.innerHTML = "";
-
-      higurashiData.forEach(item => {
-        const count = evalCounts[item.id] || 0;
-        const row = document.createElement("div");
-        row.className = "eval-item-row";
-        row.innerHTML = `
-          <span class="eval-item-title">${item.name}</span>
-          <div class="eval-item-counter">
-            <button class="eval-cnt-btn" onclick="addEvalCount('${item.id}', -1)">-</button>
-            <span class="eval-cnt-val">${count}</span>
-            <button class="eval-cnt-btn" onclick="addEvalCount('${item.id}', 1)">+</button>
-          </div>
-        `;
-        list.appendChild(row);
-      });
-    }
-
-    // 設定推測のベイズ計算
-    function calculateEval() {
-      const g = getCalcBaseGames();
-      let logLikelihood = [0, 0, 0, 0, 0, 0];
-
-      higurashiData.forEach(item => {
-        const k = evalCounts[item.id] || 0;
-        item.p.forEach((p, s) => {
-          if (p > 0) {
-            if (item.type === "game" && g > 0) {
-              // 二項分布の近似ログ対数
-              logLikelihood[s] += k * Math.log(p) + (g - k) * Math.log(1 - p);
-            } else if (item.type === "event" && k > 0) {
-              logLikelihood[s] += k * Math.log(p);
-            }
-          } else if (k > 0) {
-            logLikelihood[s] += -999; // 否定要素
+        for (let s = 0; s < 6; s++) {
+          const p = pArr[s];
+          if (p === 0) {
+            logLikelihoods[s] += -Infinity; // 出現不可な条件で出た場合は設定否定
+          } else if (N && N > 0) {
+            // 二項分布 approximation: k * log(p) + (N-k) * log(1-p)
+            logLikelihoods[s] += count * Math.log(p) + (N - count) * Math.log(1 - p);
+          } else {
+            // 試行回数分母がない演出系は単発の対数確率で加算
+            logLikelihoods[s] += count * Math.log(p);
           }
-        });
-      });
-
-      // スケーリング
-      const maxLog = Math.max(...logLikelihood);
-      let expVals = logLikelihood.map(l => Math.exp(l - maxLog));
-      const sumExp = expVals.reduce((a, b) => a + b, 0);
-      const probs = expVals.map(v => (sumExp > 0 ? (v / sumExp) * 100 : 16.6));
-
-      const container = document.getElementById("settingProbList");
-      container.innerHTML = "";
-
-      probs.forEach((p, idx) => {
-        const row = document.createElement("div");
-        row.className = "setting-row";
-        row.innerHTML = `
-          <div class="setting-label">設定${idx + 1}</div>
-          <div class="progress-bg">
-            <div class="progress-bar" style="width:${p.toFixed(1)}%"></div>
-          </div>
-          <div class="setting-val">${p.toFixed(1)}%</div>
-        `;
-        container.appendChild(row);
-      });
-    }
-
-    function addEvalCount(id, delta) {
-      if ((evalCounts[id] || 0) + delta >= 0) {
-        evalCounts[id] = (evalCounts[id] || 0) + delta;
-        recordHistory();
-        renderCounter();
-        renderEvalInputs();
-        calculateEval();
-      }
-    }
-
-    function countRole(id) {
-      const delta = isMinusMode ? -1 : 1;
-      addEvalCount(id, delta);
-    }
-
-    function addGames(amount) {
-      const delta = isMinusMode ? -amount : amount;
-      if (myGames + delta >= 0) {
-        myGames += delta;
-        recordHistory();
-        renderCounter();
-        calculateEval();
-      }
-    }
-
-    function toggleMinusMode() {
-      isMinusMode = !isMinusMode;
-      const btn = document.getElementById("btnMinusMode");
-      btn.innerText = isMinusMode ? "－ 減算" : "＋ 加算";
-      btn.classList.toggle("minus-active", isMinusMode);
-      renderCounter();
-    }
-
-    function toggleCalcBase() {
-      useMyGamesForProb = !useMyGamesForProb;
-      const btn = document.getElementById("btnToggleBase");
-      btn.innerText = useMyGamesForProb ? "個人G" : "総G";
-      recordHistory();
-      renderCounter();
-      calculateEval();
-    }
-
-    function setStartGame() {
-      const val = prompt("打ち始めゲーム数:", startGames);
-      if (val !== null && !isNaN(val) && val >= 0) {
-        startGames = parseInt(val, 10);
-        recordHistory();
-        renderCounter();
-        calculateEval();
-      }
-    }
-
-    function setTotalGame() {
-      const val = prompt("現在の総ゲーム数:", getTotalGames());
-      if (val !== null && !isNaN(val)) {
-        const total = parseInt(val, 10);
-        myGames = Math.max(0, total - startGames);
-        recordHistory();
-        renderCounter();
-        calculateEval();
-      }
-    }
-
-    function renderSettings() {
-      const list = document.getElementById("settingList");
-      list.innerHTML = "";
-      rolesConfig.forEach(role => {
-        const item = document.createElement("div");
-        item.className = "setting-item";
-        item.innerHTML = `
-          <input type="checkbox" id="cb-${role.id}" ${role.active ? "checked" : ""} style="width:20px;height:20px" onchange="toggleRole('${role.id}')">
-          <label for="cb-${role.id}" style="font-size:15px; color:#fff">${role.name}</label>
-        `;
-        list.appendChild(item);
-      });
-    }
-
-    function toggleRole(id) {
-      const role = rolesConfig.find(r => r.id === id);
-      if (role) role.active = !role.active;
-      renderCounter();
-    }
-
-    function resetAll() {
-      if (confirm("全データをリセットしますか？")) {
-        startGames = 0; myGames = 0; isMinusMode = false;
-        higurashiData.forEach(item => evalCounts[item.id] = 0);
-        historyData = [];
-        recordHistory();
-        renderCounter();
-        renderEvalInputs();
-        calculateEval();
-      }
-    }
-
-    function openModal(id) {
-      document.getElementById(id).classList.add("active");
-      if (id === "modalHistory") updateGraph();
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).classList.remove("active");
-    }
-
-    function updateGraph() {
-      const ctx = document.getElementById("chartCanvas").getContext("2d");
-      const labels = historyData.map(h => h.calcGames);
-      const datasets = rolesConfig.filter(r => r.active).map(role => ({
-        label: role.name,
-        data: historyData.map(h => {
-          const c = h.counts[role.id] || 0;
-          return c > 0 ? (h.calcGames / c).toFixed(1) : null;
-        }),
-        borderColor: role.color,
-        backgroundColor: role.color,
-        spanGaps: true,
-        tension: 0.1
-      }));
-
-      if (chartInstance) chartInstance.destroy();
-      chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { title: { display: true, text: 'G数', color: '#888' }, grid: { color: '#333' } },
-            y: { title: { display: true, text: '確率分母 (1/X)', color: '#888' }, grid: { color: '#333' } }
-          },
-          plugins: { legend: { labels: { color: '#fff' } } }
         }
-      });
-    }
+      }
 
-    // 初期化
-    renderCounter();
-    renderEvalInputs();
-    renderSettings();
-    calculateEval();
+      // 確率への変換 (Softmax / Normalization)
+      const maxLog = Math.max(...logLikelihoods.filter(v => v !== -Infinity));
+      
+      if (maxLog === -Infinity) {
+        for (let s = 1; s <= 6; s++) {
+          document.getElementById(`res-${s}`).innerText = '16.7%';
+        }
+        return;
+      }
+
+      let expSums = logLikelihoods.map(v => v === -Infinity ? 0 : Math.exp(v - maxLog));
+      const totalSum = expSums.reduce((a, b) => a + b, 0);
+
+      let maxProbIndex = 0;
+      let maxProbVal = -1;
+
+      for (let s = 0; s < 6; s++) {
+        const prob = totalSum > 0 ? (expSums[s] / totalSum) * 100 : 16.66;
+        const cell = document.getElementById(`res-${s + 1}`);
+        cell.innerText = prob.toFixed(1) + '%';
+        cell.classList.remove('highlight');
+        
+        if (prob > maxProbVal) {
+          maxProbVal = prob;
+          maxProbIndex = s + 1;
+        }
+      }
+
+      if (maxProbVal > 20) {
+        document.getElementById(`res-${maxProbIndex}`).classList.add('highlight');
+      }
+    }
   </script>
 </body>
 </html>
