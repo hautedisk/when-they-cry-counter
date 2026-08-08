@@ -1,451 +1,839 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ひぐらし祭2 設定判別カウンタ</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  :root {
-    --bg-color: #1a1a1a;
-    --card-bg: #2a2a2a;
-    --accent-color: #e65100;
-    --text-color: #e0e0e0;
-    --border-color: #444;
-  }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    margin: 0;
-    padding: 10px;
-    box-sizing: border-box;
-  }
-  h1, h2 { text-align: center; font-size: 1.2rem; margin: 10px 0; }
-  
-  /* タブナビゲーション */
-  .tabs {
-    display: flex;
-    justify-content: space-around;
-    background: #000;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    padding: 4px;
-  }
-  .tab-btn {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    background: transparent;
-    color: #888;
-    font-weight: bold;
-    font-size: 0.95rem;
-    cursor: pointer;
-    border-radius: 6px;
-  }
-  .tab-btn.active {
-    background: var(--accent-color);
-    color: #fff;
-  }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ひぐらし祭2 設定判別カウンター</title>
+  <!-- グラフ描画用 Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #d9534f;
+      --sub-primary: #337ab7;
+      --danger: #d9534f;
+      --success: #5cb85c;
+      --bg: #121214;
+      --card-bg: #1e1e24;
+      --btn-bg: #2d2d38;
+      --text: #f4f4f6;
+      --accent: #5bc0de;
+      --sub-text: #aaa;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 8px;
+      touch-action: manipulation;
+      padding-bottom: 110px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    h1 {
+      font-size: 1.1rem;
+      text-align: center;
+      margin: 4px 0 8px;
+      color: var(--primary);
+    }
+    /* モード切替バー */
+    .mode-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .mode-toggle {
+      display: flex;
+      gap: 4px;
+      background: #000;
+      padding: 4px;
+      border-radius: 6px;
+    }
+    .mode-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: #888;
+      background: transparent;
+    }
+    .mode-btn.active-add { background: var(--success); color: #fff; }
+    .mode-btn.active-sub { background: var(--danger); color: #fff; }
 
-  /* ゲーム数入力エリア */
-  .game-input-group {
-    background: var(--card-bg);
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    text-align: center;
-  }
-  .game-input-group label { font-size: 0.9rem; display: block; margin-bottom: 5px; }
-  .game-num-input {
-    width: 100px;
-    font-size: 1.3rem;
-    text-align: center;
-    background: #111;
-    color: #fff;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 4px;
-  }
-  .btn-step-group {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 8px;
-  }
-  .btn-step {
-    background: #333;
-    color: #fff;
-    border: 1px solid var(--border-color);
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.85rem;
-  }
-  .btn-step:active { background: #555; }
+    /* リセットボタン */
+    .reset-btn {
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
 
-  /* カウンタグリッド */
-  .counter-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
-  }
-  .art-grid {
-    /* ART中は横にはみ出さず一画面に収まるようコンパクトに配置 */
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .counter-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 8px;
-    text-align: center;
-  }
-  .counter-title { font-weight: bold; font-size: 0.9rem; margin-bottom: 4px; }
-  .counter-value { font-size: 1.5rem; color: #ffb74d; margin: 4px 0; }
-  .counter-rate { font-size: 0.75rem; color: #aaa; min-height: 1.2em; }
-  .btn-count {
-    width: 100%;
-    padding: 8px;
-    font-size: 1rem;
-    font-weight: bold;
-    background: #1e88e5;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 4px;
-  }
-  .btn-count:active { background: #1565c0; }
-  .btn-sub {
-    width: 100%;
-    padding: 4px;
-    font-size: 0.75rem;
-    background: #424242;
-    color: #bbb;
-    border: none;
-    border-radius: 4px;
-    margin-top: 4px;
-    cursor: pointer;
-  }
+    /* タブ切り替え */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+      background: var(--card-bg);
+      padding: 4px;
+      border-radius: 8px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 2px;
+      background: transparent;
+      border: none;
+      color: var(--sub-text);
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
-  /* セクション見出し */
-  .section-title {
-    font-size: 0.95rem;
-    color: #ff9800;
-    border-bottom: 1px solid #444;
-    padding-bottom: 4px;
-    margin: 15px 0 10px 0;
-  }
+    /* カード・グループ */
+    .card {
+      background: var(--card-bg);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-weight: bold;
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-bottom: 8px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 4px;
+    }
+    .game-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .game-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .game-row label { font-size: 0.85rem; font-weight: bold; }
+    .game-row input {
+      background: #000;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 6px;
+      border-radius: 4px;
+      font-size: 1rem;
+      width: 100px;
+      text-align: right;
+    }
+    .quick-btn-group {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .quick-btn {
+      flex: 1;
+      background: var(--btn-bg);
+      color: #fff;
+      border: 1px solid #444;
+      padding: 8px 0;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .add-custom-group {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .add-custom-group input {
+      flex: 1;
+      background: #000;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 6px;
+      border-radius: 4px;
+    }
+    .add-custom-group button {
+      background: var(--sub-primary);
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
 
-  /* グラフ表示エリア */
-  .chart-container {
-    background: var(--card-bg);
-    border-radius: 8px;
-    padding: 10px;
-    margin-top: 15px;
-  }
-</style>
-</head>
-<body>
-
-<h1>ひぐらし祭2 設定判別</h1>
-
-<!-- タブ切り替え -->
-<div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('normal')">通常時</button>
-  <button class="tab-btn" onclick="switchTab('bonus')">ボーナス</button>
-  <button class="tab-btn" onclick="switchTab('art')">ART中</button>
-</div>
-
-<!-- ================= 通常時タブ ================= -->
-<div id="tab-normal" class="tab-content active">
-  <div class="game-input-group">
-    <label>通常ゲーム数</label>
-    <input type="number" id="g-normal" class="game-num-input" value="0" onchange="updateCalculations()">
-    <div class="btn-step-group">
-      <button class="btn-step" onclick="addGames('g-normal', 10)">+10</button>
-      <button class="btn-step" onclick="addGames('g-normal', 50)">+50</button>
-      <button class="btn-step" onclick="addGames('g-normal', 100)">+100</button>
-      <button class="btn-step" onclick="addGames('g-normal', -100)">-100</button>
-    </div>
-  </div>
-
-  <div class="section-title">小役・レア役枠</div>
-  <div class="counter-grid">
-    <div class="counter-card">
-      <div class="counter-title">スイカ</div>
-      <div class="counter-value" id="val-watermelon">0</div>
-      <div class="counter-rate" id="rate-watermelon">1/-</div>
-      <button class="btn-count" onclick="countUp('watermelon', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('watermelon', -1)">-1</button>
-    </div>
-    <div class="counter-card">
-      <div class="counter-title">確定役</div>
-      <div class="counter-value" id="val-certain">0</div>
-      <div class="counter-rate" id="rate-certain">1/-</div>
-      <button class="btn-count" onclick="countUp('certain', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('certain', -1)">-1</button>
-    </div>
-  </div>
-
-  <div class="section-title">独立枠（レアベル / ひぐらしハズレ）</div>
-  <div class="counter-grid">
-    <div class="counter-card">
-      <div class="counter-title">レアベル</div>
-      <div class="counter-value" id="val-rarebell">0</div>
-      <div class="counter-rate" id="rate-rarebell">1/-</div>
-      <button class="btn-count" onclick="countUp('rarebell', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('rarebell', -1)">-1</button>
-    </div>
-    <div class="counter-card">
-      <div class="counter-title">ひぐらしハズレ</div>
-      <div class="counter-value" id="val-higurashi-miss">0</div>
-      <div class="counter-rate" id="rate-higurashi-miss">1/-</div>
-      <button class="btn-count" onclick="countUp('higurashi-miss', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('higurashi-miss', -1)">-1</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= ボーナスタブ ================= -->
-<div id="tab-bonus" class="tab-content">
-  <div class="section-title">ビタ押し・BIG初回単独キャラ枠</div>
-  <div class="counter-grid">
-    <div class="counter-card">
-      <div class="counter-title">圭一</div>
-      <div class="counter-value" id="val-ch-keiichi">0</div>
-      <button class="btn-count" onclick="countUp('ch-keiichi', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('ch-keiichi', -1)">-1</button>
-    </div>
-    <div class="counter-card">
-      <div class="counter-title">魅音</div>
-      <div class="counter-value" id="val-ch-mion">0</div>
-      <button class="btn-count" onclick="countUp('ch-mion', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('ch-mion', -1)">-1</button>
-    </div>
-    <div class="counter-card">
-      <div class="counter-title">沙都子</div>
-      <div class="counter-value" id="val-ch-satoko">0</div>
-      <button class="btn-count" onclick="countUp('ch-satoko', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('ch-satoko', -1)">-1</button>
-    </div>
-    <div class="counter-card">
-      <div class="counter-title">詩音</div>
-      <div class="counter-value" id="val-ch-shion">0</div>
-      <button class="btn-count" onclick="countUp('ch-shion', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('ch-shion', -1)">-1</button>
-    </div>
-    <div class="counter-card">
-      <div class="counter-title">レナ</div>
-      <div class="counter-value" id="val-ch-rena">0</div>
-      <button class="btn-count" onclick="countUp('ch-rena', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('ch-rena', -1)">-1</button>
-    </div>
-    <div class="counter-card">
-      <div class="counter-title">梨花</div>
-      <div class="counter-value" id="val-ch-rika">0</div>
-      <button class="btn-count" onclick="countUp('ch-rika', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('ch-rika', -1)">-1</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= ART中タブ ================= -->
-<div id="tab-art" class="tab-content">
-  <div class="game-input-group">
-    <label>ARTゲーム数</label>
-    <input type="number" id="g-art" class="game-num-input" value="0" onchange="updateCalculations()">
-    <div class="btn-step-group">
-      <button class="btn-step" onclick="addGames('g-art', 10)">+10</button>
-      <button class="btn-step" onclick="addGames('g-art', 50)">+50</button>
-      <button class="btn-step" onclick="addGames('g-art', 100)">+100</button>
-      <button class="btn-step" onclick="addGames('g-art', -100)">-100</button>
-    </div>
-  </div>
-
-  <!-- 1画面に収まりやすい2列構成 -->
-  <div class="counter-grid art-grid">
-    <div class="counter-card">
-      <div class="counter-title">ARTベル</div>
-      <div class="counter-value" id="val-art-bell">0</div>
-      <div class="counter-rate" id="rate-art-bell">1/-</div>
-      <button class="btn-count" onclick="countUp('art-bell', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('art-bell', -1)">-1</button>
-    </div>
-    <div class="counter-card">
-      <div class="counter-title">ARTハズレ</div>
-      <div class="counter-value" id="val-art-miss">0</div>
-      <div class="counter-rate" id="rate-art-miss">1/-</div>
-      <button class="btn-count" onclick="countUp('art-miss', 1)">+1</button>
-      <button class="btn-sub" onclick="countUp('art-miss', -1)">-1</button>
-    </div>
-  </div>
-
-  <!-- ART中 確率推移スランプグラフ -->
-  <div class="chart-container">
-    <h2>ART中 確率推移グラフ</h2>
-    <canvas id="artChart"></canvas>
-  </div>
-</div>
-
-<script>
-  // カウンター状態管理
-  const state = {
-    watermelon: 0,
-    certain: 0,
-    rarebell: 0,
-    'higurashi-miss': 0,
-    'art-bell': 0,
-    'art-miss': 0,
-    'ch-keiichi': 0,
-    'ch-mion': 0,
-    'ch-satoko': 0,
-    'ch-shion': 0,
-    'ch-rena': 0,
-    'ch-rika': 0
-  };
-
-  // ART確率履歴（グラフ描画用）
-  const artHistory = [];
-
-  // タブ切り替え
-  function switchTab(tabName) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    /* カウンターカード */
+    .counter-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .counter-card {
+      background: var(--btn-bg);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      border: 2px solid #3a3a48;
+      transition: all 0.1s ease;
+      box-sizing: border-box;
+    }
     
-    event.currentTarget.classList.add('active');
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-  }
-
-  // ゲーム数直接変更 & ボタン加算
-  function addGames(id, val) {
-    const input = document.getElementById(id);
-    let cur = parseInt(input.value) || 0;
-    cur = Math.max(0, cur + val);
-    input.value = cur;
-    updateCalculations();
-  }
-
-  // カウントアップ/ダウン
-  function countUp(key, delta) {
-    state[key] = Math.max(0, state[key] + delta);
-    document.getElementById(`val-${key}`).textContent = state[key];
-
-    // ART関連の変更時に履歴を記録
-    if (key === 'art-bell' || key === 'art-miss') {
-      recordArtHistory();
+    body.mode-add-active .counter-card { border-color: #2e5a32; }
+    body.mode-add-active .counter-card:active {
+      background-color: #244728;
+      border-color: var(--success);
+      transform: scale(0.98);
     }
 
-    updateCalculations();
-  }
-
-  // 確率計算と表示更新
-  function updateCalculations() {
-    const gNormal = parseInt(document.getElementById('g-normal').value) || 0;
-    const gArt = parseInt(document.getElementById('g-art').value) || 0;
-
-    // 通常時小役確率
-    calcRate('watermelon', gNormal);
-    calcRate('certain', gNormal);
-    calcRate('rarebell', gNormal);
-    calcRate('higurashi-miss', gNormal);
-
-    // ART中確率
-    calcRate('art-bell', gArt);
-    calcRate('art-miss', gArt);
-
-    updateChart();
-  }
-
-  function calcRate(key, games) {
-    const rateEl = document.getElementById(`rate-${key}`);
-    if (!rateEl) return;
-    const count = state[key];
-    if (games > 0 && count > 0) {
-      const rate = (games / count).toFixed(1);
-      rateEl.textContent = `1/${rate}`;
-    } else {
-      rateEl.textContent = '1/-';
+    body.mode-sub-active .counter-card {
+      background-color: #2d1e1e;
+      border-color: #732a2a;
     }
-  }
+    body.mode-sub-active .counter-card:active {
+      background-color: #4a1f1f;
+      border-color: var(--danger);
+      transform: scale(0.98);
+    }
 
-  // ART履歴の記録
-  function recordArtHistory() {
-    const gArt = parseInt(document.getElementById('g-art').value) || 0;
-    if (gArt <= 0) return;
+    .counter-title {
+      font-size: 0.75rem;
+      color: #ddd;
+      line-height: 1.25;
+      min-height: 2.4em;
+      pointer-events: none;
+    }
+    .counter-val {
+      font-size: 1.5rem;
+      font-weight: bold;
+      text-align: center;
+      margin: 4px 0 0;
+      color: #fff;
+      pointer-events: none;
+    }
+    body.mode-sub-active .counter-val { color: #ff9999; }
 
-    artHistory.push({
-      g: gArt,
-      bellRate: state['art-bell'] > 0 ? (gArt / state['art-bell']) : null,
-      missRate: state['art-miss'] > 0 ? (gArt / state['art-miss']) : null
-    });
-  }
+    /* 一括加算ボックス */
+    .bulk-add-box {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .bulk-add-box input {
+      flex: 1;
+      background: #000;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 4px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    .bulk-add-box button {
+      background: var(--sub-primary);
+      color: #fff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
 
-  // Chart.js グラフ初期化＆更新
-  let artChart;
-  function initChart() {
-    const ctx = document.getElementById('artChart').getContext('2d');
-    artChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [
-          {
-            label: 'ARTベル分母 (1/X)',
-            data: [],
-            borderColor: '#ffb74d',
-            backgroundColor: 'transparent',
-            tension: 0.1
-          },
-          {
-            label: 'ARTハズレ分母 (1/X)',
-            data: [],
-            borderColor: '#ff5252',
-            backgroundColor: 'transparent',
-            tension: 0.1
+    /* 固定表示の設定推測結果バー */
+    .sticky-result {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #18181c;
+      border-top: 2px solid var(--primary);
+      padding: 6px 8px;
+      z-index: 1000;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.8);
+    }
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .result-table th, .result-table td {
+      padding: 4px 2px;
+      text-align: center;
+      font-size: 0.75rem;
+    }
+    .result-table th { color: var(--sub-text); }
+    .highlight { color: var(--success); font-weight: bold; font-size: 0.85rem; }
+
+    /* チャート */
+    .chart-container {
+      position: relative;
+      height: 250px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body class="mode-add-active">
+
+  <h1>ひぐらし祭2 設定判別</h1>
+
+  <!-- モード切替 & データクリア -->
+  <div class="mode-bar">
+    <div class="mode-toggle">
+      <button id="mode-add-btn" class="mode-btn active-add" onclick="setMode('add')">➕ 加算</button>
+      <button id="mode-sub-btn" class="mode-btn" onclick="setMode('sub')">➖ 減算</button>
+    </div>
+    <button class="reset-btn" onclick="resetAllData()">クリア</button>
+  </div>
+
+  <!-- タブ切替 (4つのタブに拡張) -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('normal', event)">通常時</button>
+    <button class="tab-btn" onclick="switchTab('bonus', event)">ボーナス中</button>
+    <button class="tab-btn" onclick="switchTab('art', event)">ART中</button>
+    <button class="tab-btn" onclick="switchTab('graph', event)">確率推移</button>
+  </div>
+
+  <!-- タブ1: 通常時 -->
+  <div id="tab-normal" class="tab-content active">
+    <!-- ゲーム数入力 -->
+    <div class="card">
+      <div class="game-input-group">
+        <div class="game-row">
+          <label>通常ゲーム数</label>
+          <input type="number" id="g_normal" value="0" inputmode="numeric" oninput="saveAndCalc()">
+        </div>
+      </div>
+    </div>
+
+    <!-- 通常時単体小役 -->
+    <div class="card">
+      <div class="card-title">通常時 単体小役・演出</div>
+      <div class="counter-grid">
+        <div class="counter-card" onclick="count(0)">
+          <div class="counter-title">[0] スイカ</div>
+          <div class="counter-val" id="val_0">0</div>
+        </div>
+        <div class="counter-card" onclick="count(1)">
+          <div class="counter-title">[1] 1枚役A</div>
+          <div class="counter-val" id="val_1">0</div>
+        </div>
+        <div class="counter-card" onclick="count(45)">
+          <div class="counter-title">[45] オヤシロレアベル</div>
+          <div class="counter-val" id="val_45">0</div>
+        </div>
+        <div class="counter-card" onclick="count(47)">
+          <div class="counter-title">[47] ひぐらしハズレ</div>
+          <div class="counter-val" id="val_47">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ボーナス重複入力 -->
+    <div class="card">
+      <div class="card-title">特定ボーナス重複 (※単体小役とは別枠)</div>
+      <div class="counter-grid">
+        <script>
+          const bonusItems = [
+            {id: 3, title: "[3] 1枚役A+赤同色"},
+            {id: 4, title: "[4] 確定役+赤異色"},
+            {id: 5, title: "[5] スイカ+白同色"},
+            {id: 6, title: "[6] 単独白異色"},
+            {id: 7, title: "[7] リプ+白異色"},
+            {id: 8, title: "[8] 単独赤REG"},
+            {id: 9, title: "[9] 共通ベル+赤REG"},
+            {id: 10, title: "[10] スイカ+赤REG"},
+            {id: 11, title: "[11] 単独白REG"},
+            {id: 12, title: "[12] 共通ベル+白REG"},
+            {id: 13, title: "[13] 1枚役A+白REG"}
+          ];
+          bonusItems.forEach(item => {
+            document.write(`
+              <div class="counter-card" onclick="count(${item.id})">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+              </div>
+            `);
+          });
+        </script>
+      </div>
+    </div>
+
+    <!-- にぱ〜％・確定画面・CZナビ -->
+    <div class="card">
+      <div class="card-title">にぱ～演出・確定画面・CZ開始ナビ</div>
+      <div class="counter-grid">
+        <script>
+          const group3 = [
+            {id: 19, title: "[19] にぱ～44%"},
+            {id: 20, title: "[20] にぱ～55%"},
+            {id: 21, title: "[21] にぱ～66%"},
+            {id: 22, title: "[22] CZナビ+2開始"},
+            {id: 73, title: "[73] 確定画面水着 (設4+)"}
+          ];
+          group3.forEach(item => {
+            document.write(`
+              <div class="counter-card" onclick="count(${item.id})">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+              </div>
+            `);
+          });
+        </script>
+      </div>
+    </div>
+  </div>
+
+  <!-- タブ2: ボーナス中 (ビタ押し示唆・富竹・REG・ボイス) -->
+  <div id="tab-bonus" class="tab-content">
+    <div class="card">
+      <div class="card-title">BB中 ビタ押し成功時ボイス（1周）</div>
+      <div class="counter-grid">
+        <script>
+          const bita1 = [
+            {id: 49, title: "[49] ビタ1周: 通常"},
+            {id: 50, title: "[50] ビタ1周: 奇数示唆"},
+            {id: 51, title: "[51] ビタ1周: 偶数示唆"},
+            {id: 52, title: "[52] ビタ1周: AM (設4+)"},
+            {id: 53, title: "[53] ビタ1周: ミニキャラ(設6)"}
+          ];
+          bita1.forEach(item => {
+            document.write(`
+              <div class="counter-card" onclick="count(${item.id})">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+              </div>
+            `);
+          });
+        </script>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">BB中 ビタ押し成功時ボイス（2周）</div>
+      <div class="counter-grid">
+        <script>
+          const bita2 = [
+            {id: 54, title: "[54] ビタ2周: 通常"},
+            {id: 55, title: "[55] ビタ2周: 奇数示唆"},
+            {id: 56, title: "[56] ビタ2周: 偶数示唆"},
+            {id: 57, title: "[57] ビタ2周: AM (设4+)"},
+            {id: 58, title: "[58] ビタ2周: ミニキャラ(設6)"}
+          ];
+          bita2.forEach(item => {
+            document.write(`
+              <div class="counter-card" onclick="count(${item.id})">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+              </div>
+            `);
+          });
+        </script>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">富竹揃い・REG終了画面・転落時ボイス</div>
+      <div class="counter-grid">
+        <script>
+          const regItems = [
+            {id: 48, title: "[48] 富竹斜めBAR"},
+            {id: 67, title: "[67] REG金背景 (設2+)"},
+            {id: 68, title: "[68] 嫌な事件だったね"},
+            {id: 69, title: "[69] この世界はもう…"},
+            {id: 70, title: "[70] はぁガッカリ"},
+            {id: 71, title: "[71] 静かな夜ね"},
+            {id: 72, title: "[72] いやああああ (設5+)"}
+          ];
+          regItems.forEach(item => {
+            document.write(`
+              <div class="counter-card" onclick="count(${item.id})">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+              </div>
+            `);
+          });
+        </script>
+      </div>
+    </div>
+  </div>
+
+  <!-- タブ3: ART中 -->
+  <div id="tab-art" class="tab-content">
+    <div class="card">
+      <div class="card-title">ARTゲーム数 入力</div>
+      <div class="game-input-group">
+        <div class="game-row">
+          <label>総ARTゲーム数</label>
+          <input type="number" id="g_art" value="0" inputmode="numeric" oninput="saveAndCalc()">
+        </div>
+        <div class="quick-btn-group">
+          <button class="quick-btn" onclick="addArtG(30)">+30G</button>
+          <button class="quick-btn" onclick="addArtG(50)">+50G</button>
+          <button class="quick-btn" onclick="addArtG(90)">+90G</button>
+        </div>
+        <div class="add-custom-group">
+          <input type="number" id="custom_art_g" placeholder="指定G数を加算" inputmode="numeric">
+          <button onclick="addCustomArtG()">加算</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ART中 小役カウント</div>
+      <div class="counter-grid">
+        <div class="counter-card" onclick="count(29)">
+          <div class="counter-title">[29] ARTハズレ目</div>
+          <div class="counter-val" id="val_29">0</div>
+          <div class="bulk-add-box" onclick="event.stopPropagation();">
+            <input type="number" id="bulk_29" placeholder="数値" inputmode="numeric">
+            <button onclick="bulkAdd(29)">一括＋</button>
+          </div>
+        </div>
+        <div class="counter-card" onclick="count(74)">
+          <div class="counter-title">[74] ART共通ベル</div>
+          <div class="counter-val" id="val_74">0</div>
+          <div class="bulk-add-box" onclick="event.stopPropagation();">
+            <input type="number" id="bulk_74" placeholder="数値" inputmode="numeric">
+            <button onclick="bulkAdd(74)">一括＋</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タブ4: 確率推移グラフ -->
+  <div id="tab-graph" class="tab-content">
+    <div class="card">
+      <div class="card-title">主要要素の設定別理論値 vs 実測値</div>
+      <div class="chart-container">
+        <canvas id="rateChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 固定：設定推測結果バー -->
+  <div class="sticky-result">
+    <div style="font-weight: bold; font-size: 0.75rem; color: var(--accent); margin-bottom: 2px;">設定推測期待度</div>
+    <table class="result-table">
+      <thead>
+        <tr>
+          <th>設1</th>
+          <th>設2</th>
+          <th>設3</th>
+          <th>設4</th>
+          <th>設5</th>
+          <th>設6</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td id="res-1">16.7%</td>
+          <td id="res-2">16.7%</td>
+          <td id="res-3">16.7%</td>
+          <td id="res-4">16.7%</td>
+          <td id="res-5">16.7%</td>
+          <td id="res-6">16.7%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let currentMode = 'add';
+    let counts = {};
+
+    const probs = {
+      0: [605/65536, 612/65536, 619/65536, 625/65536, 634/65536, 651/65536],
+      1: [514/65536, 519/65536, 526/65536, 528/65536, 531/65536, 535/65536],
+      3: [4/65536, 4/65536, 4/65536, 4/65536, 5/65536, 6/65536],
+      4: [4/65536, 5/65536, 7/65536, 9/65536, 10/65536, 11/65536],
+      5: [4/65536, 4/65536, 4/65536, 4/65536, 6/65536, 6/65536],
+      6: [4/65536, 5/65536, 7/65536, 8/65536, 8/65536, 8/65536],
+      7: [4/65536, 5/65536, 6/65536, 9/65536, 9/65536, 10/65536],
+      8: [8/65536, 8/65536, 8/65536, 9/65536, 9/65536, 11/65536],
+      9: [13/65536, 14/65536, 15/65536, 18/65536, 18/65536, 18/65536],
+      10: [6/65536, 7/65536, 8/65536, 8/65536, 9/65536, 10/65536],
+      11: [7/65536, 7/65536, 8/65536, 8/65536, 10/65536, 11/65536],
+      12: [15/65536, 15/65536, 16/65536, 18/65536, 20/65536, 20/65536],
+      13: [16/65536, 17/65536, 18/65536, 18/65536, 18/65536, 19/65536],
+      29: [945/65536, 992/65536, 1013/65536, 1073/65536, 1113/65536, 1130/65536],
+      74: [1/18.70, 1/17.88, 1/17.04, 1/15.86, 1/15.09, 1/14.83],
+      45: [330/65536, 360/65536, 390/65536, 420/65536, 480/65536, 600/65536],
+      47: [1926/65536, 2066/65536, 2206/65536, 2346/65536, 2486/65536, 2626/65536],
+      48: [84/65536, 94/65536, 104/65536, 214/65536, 276/65536, 370/65536],
+      19: [0.13333, 0.13333, 0.13333, 0.26666, 0.26666, 0.26666],
+      20: [0, 0, 0, 0, 0.05002, 0.05002],
+      21: [0, 0, 0, 0, 0, 0.05002],
+      22: [0.01172, 0.01563, 0.01563, 0.01953, 0.01953, 0.02344],
+      49: [0.79996, 0.79996, 0.74998, 0.74998, 0.74998, 0.74998],
+      50: [0.12003, 0.08002, 0.15001, 0.09668, 0.14401, 0.09332],
+      51: [0.08002, 0.12003, 0.10001, 0.14502, 0.09601, 0.13998],
+      52: [0, 0, 0, 0.00832, 0.00999, 0.00999],
+      53: [0, 0, 0, 0, 0, 0.00671],
+      54: [0.66667, 0.66667, 0.59999, 0.59999, 0.59999, 0.59999],
+      55: [0.20000, 0.13333, 0.24001, 0.15469, 0.23039, 0.14935],
+      56: [0.13333, 0.20000, 0.16000, 0.23204, 0.15359, 0.22403],
+      57: [0, 0, 0, 0.01328, 0.01602, 0.01602],
+      58: [0, 0, 0, 0, 0, 0.01060],
+      67: [0, 0.008, 0.008, 0.010, 0.010, 0.013],
+      68: [0.40997, 0.40002, 0.40002, 0.40002, 0.40002, 0.40002],
+      69: [0.32574, 0.14478, 0.21588, 0.14160, 0.20020, 0.12000],
+      70: [0.21710, 0.21722, 0.14392, 0.21240, 0.13342, 0.17999],
+      71: [0.04718, 0.23798, 0.24017, 0.24597, 0.13318, 0.14999],
+      72: [0, 0, 0, 0, 0.13318, 0.14999],
+      73: [0, 0, 0, 0.03333, 0.03699, 0.04004]
+    };
+
+    const denomGroup = {
+      0: 'g_normal', 1: 'g_normal', 3: 'g_normal', 4: 'g_normal', 5: 'g_normal',
+      6: 'g_normal', 7: 'g_normal', 8: 'g_normal', 9: 'g_normal', 10: 'g_normal',
+      11: 'g_normal', 12: 'g_normal', 13: 'g_normal', 29: 'g_art', 74: 'g_art'
+    };
+
+    // 読み込み時：自動復元
+    window.onload = function() {
+      loadData();
+    };
+
+    function saveAndCalc() {
+      saveData();
+      calculate();
+    }
+
+    // ローカルストレージに保存
+    function saveData() {
+      const data = {
+        counts: counts,
+        g_normal: document.getElementById('g_normal').value,
+        g_art: document.getElementById('g_art').value
+      };
+      localStorage.setItem('higurashi_counter_data', JSON.stringify(data));
+    }
+
+    // ローカルストレージから復元
+    function loadData() {
+      const saved = localStorage.getItem('higurashi_counter_data');
+      if (!saved) return;
+      try {
+        const data = JSON.parse(saved);
+        counts = data.counts || {};
+        document.getElementById('g_normal').value = data.g_normal || 0;
+        document.getElementById('g_art').value = data.g_art || 0;
+
+        // 画面の数値表示更新
+        for (let id in counts) {
+          const el = document.getElementById(`val_${id}`);
+          if (el) el.innerText = counts[id];
+        }
+        calculate();
+      } catch(e) {
+        console.error("復元失敗:", e);
+      }
+    }
+
+    // データリセット
+    function resetAllData() {
+      if (confirm("カウントしたデータをすべてクリアしますか？")) {
+        localStorage.removeItem('higurashi_counter_data');
+        counts = {};
+        document.getElementById('g_normal').value = 0;
+        document.getElementById('g_art').value = 0;
+        document.querySelectorAll('.counter-val').forEach(el => el.innerText = 0);
+        calculate();
+      }
+    }
+
+    // 操作モード切替
+    function setMode(mode) {
+      currentMode = mode;
+      const addBtn = document.getElementById('mode-add-btn');
+      const subBtn = document.getElementById('mode-sub-btn');
+
+      if (mode === 'add') {
+        addBtn.className = 'mode-btn active-add';
+        subBtn.className = 'mode-btn';
+        document.body.className = 'mode-add-active';
+      } else {
+        addBtn.className = 'mode-btn';
+        subBtn.className = 'mode-btn active-sub';
+        document.body.className = 'mode-sub-active';
+      }
+    }
+
+    // カウント処理（カードタップ時）
+    function count(id) {
+      const delta = currentMode === 'add' ? 1 : -1;
+      counts[id] = Math.max(0, (counts[id] || 0) + delta);
+      const el = document.getElementById(`val_${id}`);
+      if (el) el.innerText = counts[id];
+      saveAndCalc();
+    }
+
+    // まとめ加算
+    function bulkAdd(id) {
+      const inputEl = document.getElementById(`bulk_${id}`);
+      const val = parseInt(inputEl.value) || 0;
+      if (val === 0) return;
+      counts[id] = Math.max(0, (counts[id] || 0) + val);
+      document.getElementById(`val_${id}`).innerText = counts[id];
+      inputEl.value = '';
+      saveAndCalc();
+    }
+
+    // ARTゲーム数加算
+    function addArtG(amount) {
+      const el = document.getElementById('g_art');
+      const current = parseInt(el.value) || 0;
+      el.value = Math.max(0, current + amount);
+      saveAndCalc();
+    }
+
+    function addCustomArtG() {
+      const inputEl = document.getElementById('custom_art_g');
+      const amount = parseInt(inputEl.value) || 0;
+      if (amount === 0) return;
+      addArtG(amount);
+      inputEl.value = '';
+    }
+
+    // タブ切替
+    function switchTab(tabName, evt) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      evt.target.classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+
+      if (tabName === 'graph') {
+        updateChart();
+      }
+    }
+
+    // 推測計算
+    function calculate() {
+      const gNormal = parseFloat(document.getElementById('g_normal').value) || 0;
+      const gArt = parseFloat(document.getElementById('g_art').value) || 0;
+
+      let logLikelihoods = [0, 0, 0, 0, 0, 0];
+
+      for (let id in probs) {
+        const c = counts[id] || 0;
+        if (c <= 0) continue;
+
+        const pArr = probs[id];
+        const denomId = denomGroup[id];
+        const N = denomId === 'g_normal' ? gNormal : (denomId === 'g_art' ? gArt : null);
+
+        for (let s = 0; s < 6; s++) {
+          const p = pArr[s];
+          if (p === 0) {
+            logLikelihoods[s] += -Infinity;
+          } else if (N && N > 0) {
+            logLikelihoods[s] += c * Math.log(p) + (N - c) * Math.log(1 - p);
+          } else {
+            logLikelihoods[s] += c * Math.log(p);
           }
-        ]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          x: {
-            title: { display: true, text: 'ART G数', color: '#888' },
-            ticks: { color: '#888' }
-          },
-          y: {
-            title: { display: true, text: '確率分母', color: '#888' },
-            ticks: { color: '#888' },
-            reverse: true // 確率が軽い(良い)ほど上に行くスランプ表示風設定
-          }
-        },
-        plugins: {
-          legend: { labels: { color: '#ccc' } }
         }
       }
-    });
-  }
 
-  function updateChart() {
-    if (!artChart) return;
-    
-    // データポイントが多すぎる場合は 間引き/最新化
-    const labels = artHistory.map(h => `${h.g}G`);
-    const bellData = artHistory.map(h => h.bellRate);
-    const missData = artHistory.map(h => h.missRate);
+      const validLogs = logLikelihoods.filter(v => v !== -Infinity);
+      if (validLogs.length === 0) {
+        for (let s = 1; s <= 6; s++) {
+          document.getElementById(`res-${s}`).innerText = '16.7%';
+        }
+        return;
+      }
 
-    artChart.data.labels = labels;
-    artChart.data.datasets[0].data = bellData;
-    artChart.data.datasets[1].data = missData;
-    artChart.update();
-  }
+      const maxLog = Math.max(...validLogs);
+      let expSums = logLikelihoods.map(v => v === -Infinity ? 0 : Math.exp(v - maxLog));
+      const totalSum = expSums.reduce((a, b) => a + b, 0);
 
-  window.onload = function() {
-    initChart();
-  };
-</script>
+      let maxProbIndex = 0;
+      let maxProbVal = -1;
+
+      for (let s = 0; s < 6; s++) {
+        const prob = totalSum > 0 ? (expSums[s] / totalSum) * 100 : 16.66;
+        const cell = document.getElementById(`res-${s + 1}`);
+        cell.innerText = prob.toFixed(1) + '%';
+        cell.classList.remove('highlight');
+        
+        if (prob > maxProbVal) {
+          maxProbVal = prob;
+          maxProbIndex = s + 1;
+        }
+      }
+
+      if (maxProbVal > 20) {
+        document.getElementById(`res-${maxProbIndex}`).classList.add('highlight');
+      }
+    }
+
+    // Chart.js グラフ
+    let rateChart = null;
+
+    function updateChart() {
+      const gNormal = parseFloat(document.getElementById('g_normal').value) || 0;
+      const gArt = parseFloat(document.getElementById('g_art').value) || 0;
+
+      const スイカRate = (counts[0] > 0 && gNormal > 0) ? (gNormal / counts[0]).toFixed(1) : 0;
+      const artハズレRate = (counts[29] > 0 && gArt > 0) ? (gArt / counts[29]).toFixed(1) : 0;
+
+      const ctx = document.getElementById('rateChart').getContext('2d');
+
+      if (rateChart) {
+        rateChart.destroy();
+      }
+
+      rateChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['スイカ(1/x)', 'ARTハズレ(1/x)'],
+          datasets: [
+            {
+              label: '実測値',
+              data: [スイカRate, artハズレRate],
+              backgroundColor: '#5bc0de'
+            },
+            {
+              label: '設定1理論値',
+              data: [108.3, 69.3],
+              backgroundColor: '#d9534f'
+            },
+            {
+              label: '設定6理論値',
+              data: [100.6, 58.0],
+              backgroundColor: '#5cb85c'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#ccc', font: { size: 10 } } }
+          },
+          scales: {
+            x: { ticks: { color: '#ccc' } },
+            y: { ticks: { color: '#ccc' }, title: { display: true, text: '確率分母', color: '#aaa' } }
+          }
+        }
+      });
+    }
+  </script>
 </body>
 </html>
