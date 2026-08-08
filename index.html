@@ -303,7 +303,7 @@
     /* チャート容器 */
     .chart-container {
       position: relative;
-      height: 320px;
+      height: 380px;
       width: 100%;
     }
   </style>
@@ -331,7 +331,6 @@
 
   <!-- タブ1: 通常時 -->
   <div id="tab-normal" class="tab-content active">
-    <!-- ゲーム数入力 -->
     <div class="card">
       <div class="game-input-group">
         <div class="game-row">
@@ -347,7 +346,6 @@
       </div>
     </div>
 
-    <!-- 通常時単体小役 -->
     <div class="card">
       <div class="card-title">通常時 単体小役・演出</div>
       <div class="counter-grid">
@@ -362,7 +360,6 @@
       </div>
     </div>
 
-    <!-- ボーナス重複入力 -->
     <div class="card">
       <div class="card-title">特定ボーナス重複 (※単体小役とは別枠)</div>
       <div class="counter-grid">
@@ -392,7 +389,6 @@
       </div>
     </div>
 
-    <!-- にぱ〜％・確定画面・CZナビ -->
     <div class="card">
       <div class="card-title">にぱ～演出・確定画面・CZ開始ナビ</div>
       <div class="counter-grid">
@@ -519,7 +515,7 @@
     </div>
   </div>
 
-  <!-- タブ3: ART中 (縦並びレイアウト修正) -->
+  <!-- タブ3: ART中 -->
   <div id="tab-art" class="tab-content">
     <div class="card">
       <div class="card-title">ARTゲーム数 入力</div>
@@ -543,7 +539,6 @@
     <div class="card">
       <div class="card-title">ART中 小役カウント (縦並び)</div>
       <div class="counter-vertical">
-        <!-- ART共通ベル -->
         <div class="counter-card" onclick="count(74)">
           <div class="counter-header">
             <span class="counter-title">ART共通ベル</span>
@@ -556,7 +551,6 @@
           </div>
         </div>
 
-        <!-- ARTハズレ目 -->
         <div class="counter-card" onclick="count(29)">
           <div class="counter-header">
             <span class="counter-title">ARTハズレ目</span>
@@ -575,13 +569,13 @@
   <!-- タブ4: 確率推移グラフ -->
   <div id="tab-graph" class="tab-content">
     <div class="card">
-      <div class="card-title">ART中 ベル・ハズレ確率分母推移（収束グラフ）</div>
+      <div class="card-title">ART中 確率分母推移（実測値 vs 設定1〜6理論値）</div>
       <div class="chart-container">
         <canvas id="rateChart"></canvas>
       </div>
       <div style="font-size: 0.75rem; color: #aaa; margin-top: 8px; text-align: center;">
-        ※横軸: ART累計ゲーム数(G) / 縦軸: 確率分母(1/X)<br>
-        点線: 設定1〜6理論値 (ベル:18.7〜14.8 / ハズレ:69.3〜58.0)
+        実線：実測確率分母 / 破線：設定1〜6理論値<br>
+        緑系統：共通ベル / 赤〜黄系統：ARTハズレ
       </div>
     </div>
   </div>
@@ -616,7 +610,7 @@
   <script>
     let currentMode = 'add';
     let counts = {};
-    let artHistory = []; // 推移グラフ用の履歴データ [{g, bell, hazure}]
+    let artHistory = [];
 
     const probs = {
       0: [605/65536, 612/65536, 619/65536, 625/65536, 634/65536, 651/65536],
@@ -671,7 +665,6 @@
     const bellTheo = [18.70, 17.88, 17.04, 15.86, 15.09, 14.83];
     const hazureTheo = [69.35, 66.06, 64.69, 61.08, 58.88, 58.00];
 
-    // 読み込み時：自動復元
     window.onload = function() {
       loadData();
     };
@@ -708,7 +701,6 @@
       if (hazureElem) hazureElem.innerText = (hazure > 0 && gArt > 0) ? `1/${(gArt / hazure).toFixed(1)}` : '1/--.-';
     }
 
-    // ローカルストレージに保存
     function saveData() {
       const data = {
         counts: counts,
@@ -720,7 +712,6 @@
       localStorage.setItem('higurashi_counter_data', JSON.stringify(data));
     }
 
-    // ローカルストレージから復元
     function loadData() {
       const saved = localStorage.getItem('higurashi_counter_data');
       if (!saved) return;
@@ -734,7 +725,6 @@
         }
         document.getElementById('g_art').value = data.g_art || 0;
 
-        // 画面の数値表示更新
         for (let id in counts) {
           const el = document.getElementById(`val_${id}`);
           if (el) el.innerText = counts[id];
@@ -746,7 +736,6 @@
       }
     }
 
-    // データリセット
     function resetAllData() {
       if (confirm("カウントしたデータをすべてクリアしますか？")) {
         localStorage.removeItem('higurashi_counter_data');
@@ -763,7 +752,6 @@
       }
     }
 
-    // 操作モード切替
     function setMode(mode) {
       currentMode = mode;
       const addBtn = document.getElementById('mode-add-btn');
@@ -780,7 +768,6 @@
       }
     }
 
-    // カウント処理（カードタップ時）
     function count(id) {
       const delta = currentMode === 'add' ? 1 : -1;
       counts[id] = Math.max(0, (counts[id] || 0) + delta);
@@ -789,7 +776,6 @@
       saveAndCalc();
     }
 
-    // まとめ加算
     function bulkAdd(id) {
       const inputEl = document.getElementById(`bulk_${id}`);
       const val = parseInt(inputEl.value) || 0;
@@ -800,7 +786,6 @@
       saveAndCalc();
     }
 
-    // 通常ゲーム数加算
     function addNormalG(amount) {
       const el = document.getElementById('g_normal');
       const current = parseInt(el.value) || 0;
@@ -808,7 +793,6 @@
       saveAndCalc();
     }
 
-    // ボーナスゲーム数加算
     function addBonusG(amount) {
       const el = document.getElementById('g_bonus');
       const current = parseInt(el.value) || 0;
@@ -816,7 +800,6 @@
       saveAndCalc();
     }
 
-    // ARTゲーム数加算
     function addArtG(amount) {
       const el = document.getElementById('g_art');
       const current = parseInt(el.value) || 0;
@@ -832,7 +815,6 @@
       inputEl.value = '';
     }
 
-    // タブ切替
     function switchTab(tabName, evt) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -845,7 +827,6 @@
       }
     }
 
-    // 推測計算
     function calculate() {
       const gNormal = parseFloat(document.getElementById('g_normal').value) || 0;
       const gBonus = document.getElementById('g_bonus') ? parseFloat(document.getElementById('g_bonus').value) || 0 : 0;
@@ -908,13 +889,12 @@
       }
     }
 
-    // Chart.js 確率推移グラフ（収束スランプグラフ風）
+    // Chart.js 確率推移グラフ
     let rateChart = null;
 
     function updateChart() {
       const ctx = document.getElementById('rateChart').getContext('2d');
 
-      // 履歴からプロット用ラベルと実測値を生成
       let labels = [];
       let bellRates = [];
       let hazureRates = [];
@@ -934,6 +914,79 @@
         });
       }
 
+      // カラーパレット定義（視認性の高い配色）
+      // ベル（理論値）: 青緑〜濃緑のグラデーション破線
+      const bellColors = [
+        'rgba(144, 238, 144, 0.6)', // 設1: 薄緑
+        'rgba(102, 205, 170, 0.7)', // 設2
+        'rgba(60, 179, 113, 0.8)',  // 設3
+        'rgba(46, 139, 87, 0.9)',   // 設4
+        'rgba(30, 130, 76, 1.0)',   // 設5
+        'rgba(0, 100, 0, 1.0)'      // 設6: 濃緑
+      ];
+
+      // ハズレ（理論値）: ピンク〜濃赤紫のグラデーション破線
+      const hazureColors = [
+        'rgba(255, 182, 193, 0.6)', // 設1: 薄ピンク
+        'rgba(255, 105, 180, 0.7)', // 設2
+        'rgba(255, 69, 0, 0.8)',   // 設3
+        'rgba(220, 20, 60, 0.9)',   // 設4
+        'rgba(178, 34, 34, 1.0)',   // 設5
+        'rgba(139, 0, 0, 1.0)'      // 設6: 濃赤
+      ];
+
+      const datasets = [
+        // 実測値（太い実線）
+        {
+          label: '【実測】ベル分母',
+          data: bellRates,
+          borderColor: '#00ff66',
+          backgroundColor: '#00ff66',
+          borderWidth: 3.5,
+          tension: 0.1,
+          fill: false,
+          order: 1
+        },
+        {
+          label: '【実測】ハズレ分母',
+          data: hazureRates,
+          borderColor: '#ff3366',
+          backgroundColor: '#ff3366',
+          borderWidth: 3.5,
+          tension: 0.1,
+          fill: false,
+          order: 2
+        }
+      ];
+
+      // ベル 設定1〜6の理論値ライン追加
+      for (let s = 0; s < 6; s++) {
+        datasets.push({
+          label: `ベル 設${s + 1} (${bellTheo[s]})`,
+          data: Array(labels.length).fill(bellTheo[s]),
+          borderColor: bellColors[s],
+          borderWidth: 1.5,
+          borderDash: [3, 3],
+          pointRadius: 0,
+          fill: false,
+          order: 10
+        });
+      }
+
+      // ハズレ 設定1〜6の理論値ライン追加
+      for (let s = 0; s < 6; s++) {
+        datasets.push({
+          label: `ハズレ 設${s + 1} (${hazureTheo[s]})`,
+          data: Array(labels.length).fill(hazureTheo[s]),
+          borderColor: hazureColors[s],
+          borderWidth: 1.5,
+          borderDash: [3, 3],
+          pointRadius: 0,
+          fill: false,
+          order: 10
+        });
+      }
+
       if (rateChart) {
         rateChart.destroy();
       }
@@ -942,65 +995,19 @@
         type: 'line',
         data: {
           labels: labels,
-          datasets: [
-            {
-              label: 'ベル分母 (実測)',
-              data: bellRates,
-              borderColor: '#5cb85c',
-              backgroundColor: '#5cb85c',
-              borderWidth: 3,
-              tension: 0.2,
-              fill: false
-            },
-            {
-              label: 'ハズレ分母 (実測)',
-              data: hazureRates,
-              borderColor: '#d9534f',
-              backgroundColor: '#d9534f',
-              borderWidth: 3,
-              tension: 0.2,
-              fill: false
-            },
-            {
-              label: 'ベル 設1理論(18.7)',
-              data: Array(labels.length).fill(bellTheo[0]),
-              borderColor: 'rgba(92, 184, 92, 0.4)',
-              borderDash: [4, 4],
-              pointRadius: 0,
-              fill: false
-            },
-            {
-              label: 'ベル 設6理論(14.8)',
-              data: Array(labels.length).fill(bellTheo[5]),
-              borderColor: 'rgba(92, 184, 92, 0.8)',
-              borderDash: [2, 2],
-              pointRadius: 0,
-              fill: false
-            },
-            {
-              label: 'ハズレ 設1理論(69.3)',
-              data: Array(labels.length).fill(hazureTheo[0]),
-              borderColor: 'rgba(217, 83, 79, 0.4)',
-              borderDash: [4, 4],
-              pointRadius: 0,
-              fill: false
-            },
-            {
-              label: 'ハズレ 設6理論(58.0)',
-              data: Array(labels.length).fill(hazureTheo[5]),
-              borderColor: 'rgba(217, 83, 79, 0.8)',
-              borderDash: [2, 2],
-              pointRadius: 0,
-              fill: false
-            }
-          ]
+          datasets: datasets
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              labels: { color: '#ccc', font: { size: 9 }, boxWidth: 12 }
+              labels: {
+                color: '#ccc',
+                font: { size: 8 },
+                boxWidth: 10,
+                padding: 4
+              }
             },
             tooltip: {
               callbacks: {
@@ -1013,12 +1020,17 @@
           },
           scales: {
             x: {
-              ticks: { color: '#ccc', font: { size: 10 } },
-              grid: { color: '#333' }
+              ticks: {
+                color: '#ccc',
+                font: { size: 10 },
+                maxTicksLimit: 6, // 横軸の目盛り数が多くなりすぎないよう自動調整
+                autoSkip: true
+              },
+              grid: { color: '#2a2a35' }
             },
             y: {
               ticks: { color: '#ccc', font: { size: 10 } },
-              grid: { color: '#333' },
+              grid: { color: '#2a2a35' },
               title: { display: true, text: '確率分母 (1/X)', color: '#aaa', font: { size: 10 } }
             }
           }
