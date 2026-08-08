@@ -2,13 +2,15 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ひぐらし祭2 設定判別ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ひぐらし祭2 設定判別</title>
   <style>
     :root {
       --primary: #d9534f;
-      --bg: #1e1e24;
-      --card-bg: #2b2b36;
+      --bg: #121214;
+      --card-bg: #1e1e24;
+      --btn-bg: #2d2d38;
+      --btn-active: #3d3d4e;
       --text: #f4f4f6;
       --accent: #5bc0de;
     }
@@ -17,32 +19,33 @@
       background-color: var(--bg);
       color: var(--text);
       margin: 0;
-      padding: 12px;
+      padding: 8px;
+      touch-action: manipulation;
     }
     h1 {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       text-align: center;
-      margin-bottom: 12px;
+      margin: 4px 0 8px;
       color: var(--primary);
     }
     .tabs {
       display: flex;
       gap: 4px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
       background: var(--card-bg);
       padding: 4px;
       border-radius: 8px;
     }
     .tab-btn {
       flex: 1;
-      padding: 10px 4px;
+      padding: 12px 4px;
       background: transparent;
       border: none;
-      color: #aaa;
+      color: #888;
       font-weight: bold;
       cursor: pointer;
       border-radius: 6px;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
     }
     .tab-btn.active {
       background: var(--primary);
@@ -56,60 +59,114 @@
     }
     .card {
       background: var(--card-bg);
-      padding: 12px;
+      padding: 10px;
       border-radius: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     .card-title {
       font-weight: bold;
-      font-size: 0.95rem;
-      margin-bottom: 8px;
-      border-bottom: 2px solid var(--primary);
-      padding-bottom: 4px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-bottom: 6px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 2px;
     }
-    .input-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    .game-input-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 8px;
     }
-    .input-group {
-      display: flex;
-      flex-direction: column;
+    .game-input-group label {
+      font-size: 0.9rem;
+      font-weight: bold;
     }
-    label {
-      font-size: 0.75rem;
-      margin-bottom: 2px;
-      color: #ccc;
-    }
-    input {
-      background: #141419;
+    .game-input-group input {
+      background: #000;
       border: 1px solid #444;
       color: #fff;
       padding: 8px;
-      border-radius: 4px;
-      font-size: 0.9rem;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      width: 120px;
+      text-align: right;
     }
-    input:focus {
-      border-color: var(--accent);
-      outline: none;
+    .counter-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .counter-card {
+      background: var(--btn-bg);
+      border-radius: 6px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .counter-title {
+      font-size: 0.75rem;
+      color: #ccc;
+      line-height: 1.1;
+      min-height: 2.2em;
+    }
+    .counter-val {
+      font-size: 1.3rem;
+      font-weight: bold;
+      text-align: center;
+      margin: 4px 0;
+      color: #fff;
+    }
+    .btn-group {
+      display: flex;
+      gap: 4px;
+    }
+    .btn-add {
+      flex: 3;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 0;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-add:active {
+      opacity: 0.7;
+    }
+    .btn-sub {
+      flex: 1;
+      background: #444;
+      color: #ccc;
+      border: none;
+      padding: 8px 0;
+      font-size: 0.9rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-sub:active {
+      background: #666;
     }
     .result-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 8px;
+      margin-top: 4px;
     }
     .result-table th, .result-table td {
-      padding: 8px 4px;
+      padding: 6px 2px;
       text-align: center;
       border-bottom: 1px solid #333;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
     .result-table th {
-      background: #202028;
+      background: #18181c;
+      color: #aaa;
     }
     .highlight {
       color: #5cb85c;
       font-weight: bold;
+      font-size: 0.95rem;
     }
   </style>
 </head>
@@ -118,127 +175,181 @@
   <h1>ひぐらし祭2 設定判別</h1>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('normal')">通常・ART</button>
-    <button class="tab-btn" onclick="switchTab('bonus')">ボーナス中</button>
-    <button class="tab-btn" onclick="switchTab('演出')">演出・示唆</button>
+    <button class="tab-btn active" onclick="switchTab('normal', event)">通常・ボーナス・演出</button>
+    <button class="tab-btn" onclick="switchTab('art', event)">ART中</button>
   </div>
 
-  <!-- タブ1: 通常時・ART -->
+  <!-- タブ1: 通常・ボーナス・演出 -->
   <div id="tab-normal" class="tab-content active">
     <div class="card">
-      <div class="card-title">ゲーム数入力</div>
-      <div class="input-grid">
-        <div class="input-group">
-          <label>通常ゲーム数</label>
-          <input type="number" id="g_normal" value="0" oninput="calculate()">
-        </div>
-        <div class="input-group">
-          <label>ARTゲーム数</label>
-          <input type="number" id="g_art" value="0" oninput="calculate()">
-        </div>
+      <div class="game-input-group">
+        <label>通常ゲーム数</label>
+        <input type="number" id="g_normal" value="0" inputmode="numeric" oninput="calculate()">
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">小役・特定ボーナス (通常時)</div>
-      <div class="input-grid">
-        <div class="input-group"><label>[0] スイカ</label><input type="number" id="c_0" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[1] 1枚役A</label><input type="number" id="c_1" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[2] ベル揃い</label><input type="number" id="c_2" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[3] 1枚役A+赤同色</label><input type="number" id="c_3" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[4] 確定役+赤異色</label><input type="number" id="c_4" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[5] スイカ+白同色</label><input type="number" id="c_5" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[6] 単独白異色</label><input type="number" id="c_6" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[7] リプ+白異色</label><input type="number" id="c_7" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[8] 単独赤REG</label><input type="number" id="c_8" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[9] 共通ベル+赤REG</label><input type="number" id="c_9" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[10] スイカ+赤REG</label><input type="number" id="c_10" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[11] 単独白REG</label><input type="number" id="c_11" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[12] 共通ベル+白REG</label><input type="number" id="c_12" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[13] 1枚役A+白REG</label><input type="number" id="c_13" value="0" oninput="calculate()"></div>
+      <div class="card-title">通常時 小役・特定ボーナス</div>
+      <div class="counter-grid">
+        <!-- 各小役カウンター -->
+        <script>
+          const normalItems = [
+            {id: 0, title: "[0] スイカ"},
+            {id: 1, title: "[1] 1枚役A"},
+            {id: 3, title: "[3] 1枚役A+赤同色"},
+            {id: 4, title: "[4] 確定役+赤異色"},
+            {id: 5, title: "[5] スイカ+白同色"},
+            {id: 6, title: "[6] 単独白異色"},
+            {id: 7, title: "[7] リプ+白異色"},
+            {id: 8, title: "[8] 単独赤REG"},
+            {id: 9, title: "[9] 共通ベル+赤REG"},
+            {id: 10, title: "[10] スイカ+赤REG"},
+            {id: 11, title: "[11] 単独白REG"},
+            {id: 12, title: "[12] 共通ベル+白REG"},
+            {id: 13, title: "[13] 1枚役A+白REG"}
+          ];
+          normalItems.forEach(item => {
+            document.write(`
+              <div class="counter-card">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+                <div class="btn-group">
+                  <button class="btn-sub" onclick="add(${item.id}, -1)">-</button>
+                  <button class="btn-add" onclick="add(${item.id}, 1)">+1</button>
+                </div>
+              </div>
+            `);
+          });
+        </script>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">ART中要素</div>
-      <div class="input-grid">
-        <div class="input-group"><label>[29] ARTハズレ目</label><input type="number" id="c_29" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[74] ART共通ベル</label><input type="number" id="c_74" value="0" oninput="calculate()"></div>
+      <div class="card-title">ボーナス中</div>
+      <div class="counter-grid">
+        <script>
+          const bonusItems = [
+            {id: 45, title: "[45] オヤシロレアベル"},
+            {id: 47, title: "[47] ひぐらしハズレ"},
+            {id: 48, title: "[48] 富竹斜めBAR"}
+          ];
+          bonusItems.forEach(item => {
+            document.write(`
+              <div class="counter-card">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+                <div class="btn-group">
+                  <button class="btn-sub" onclick="add(${item.id}, -1)">-</button>
+                  <button class="btn-add" onclick="add(${item.id}, 1)">+1</button>
+                </div>
+              </div>
+            `);
+          });
+        </script>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">演出・ボイス示唆</div>
+      <div class="counter-grid">
+        <script>
+          const effectItems = [
+            {id: 19, title: "[19] にぱ～44%"},
+            {id: 20, title: "[20] にぱ～55%"},
+            {id: 21, title: "[21] にぱ～66%"},
+            {id: 22, title: "[22] CZナビ+2開始"},
+            {id: 68, title: "[68] 嫌な事件だったね"},
+            {id: 69, title: "[69] この世界はもう…"},
+            {id: 70, title: "[70] はぁガッカリ"},
+            {id: 71, title: "[71] 静かな夜ね"},
+            {id: 72, title: "[72] いやああああ"}
+          ];
+          effectItems.forEach(item => {
+            document.write(`
+              <div class="counter-card">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+                <div class="btn-group">
+                  <button class="btn-sub" onclick="add(${item.id}, -1)">-</button>
+                  <button class="btn-add" onclick="add(${item.id}, 1)">+1</button>
+                </div>
+              </div>
+            `);
+          });
+        </script>
       </div>
     </div>
   </div>
 
-  <!-- タブ2: ボーナス中 -->
-  <div id="tab-bonus" class="tab-content">
+  <!-- タブ2: ART中 -->
+  <div id="tab-art" class="tab-content">
     <div class="card">
-      <div class="card-title">ボーナス中要素</div>
-      <div class="input-grid">
-        <div class="input-group"><label>[45] オヤシロレアベル</label><input type="number" id="c_45" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[47] ひぐらしハズレ</label><input type="number" id="c_47" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[48] 富竹斜めBAR</label><input type="number" id="c_48" value="0" oninput="calculate()"></div>
+      <div class="game-input-group">
+        <label>ARTゲーム数</label>
+        <input type="number" id="g_art" value="0" inputmode="numeric" oninput="calculate()">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ART中 カウント</div>
+      <div class="counter-grid">
+        <script>
+          const artItems = [
+            {id: 29, title: "[29] ARTハズレ目"},
+            {id: 74, title: "[74] ART共通ベル"}
+          ];
+          artItems.forEach(item => {
+            document.write(`
+              <div class="counter-card">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+                <div class="btn-group">
+                  <button class="btn-sub" onclick="add(${item.id}, -1)">-</button>
+                  <button class="btn-add" onclick="add(${item.id}, 1)">+1</button>
+                </div>
+              </div>
+            `);
+          });
+        </script>
       </div>
     </div>
   </div>
 
-  <!-- タブ3: 演出・ボイス -->
-  <div id="tab-演出" class="tab-content">
-    <div class="card">
-      <div class="card-title">にぱ～演出 / CZ</div>
-      <div class="input-grid">
-        <div class="input-group"><label>[19] にぱ～44%</label><input type="number" id="c_19" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[20] にぱ～55%</label><input type="number" id="c_20" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[21] にぱ～66%</label><input type="number" id="c_21" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[22] CZナビ+2開始</label><input type="number" id="c_22" value="0" oninput="calculate()"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">CZ即転落時ボイス</div>
-      <div class="input-grid">
-        <div class="input-group"><label>[68] 嫌な事件だったね</label><input type="number" id="c_68" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[69] この世界はもう…</label><input type="number" id="c_69" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[70] はぁガッカリ</label><input type="number" id="c_70" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[71] 静かな夜ね</label><input type="number" id="c_71" value="0" oninput="calculate()"></div>
-        <div class="input-group"><label>[72] いやああああ</label><input type="number" id="c_72" value="0" oninput="calculate()"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 推定結果（常時表示） -->
-  <div class="card">
-    <div class="card-title">判別結果 (二項分布確率計算)</div>
+  <!-- 固定表示：判別結果 -->
+  <div class="card" style="position: sticky; bottom: 8px; z-index: 100; box-shadow: 0 -4px 12px rgba(0,0,0,0.5);">
+    <div class="card-title" style="margin-bottom: 2px;">設定推測結果</div>
     <table class="result-table">
       <thead>
         <tr>
-          <th>設定</th>
-          <th>設定1</th>
-          <th>設定2</th>
-          <th>設定3</th>
-          <th>設定4</th>
-          <th>設定5</th>
-          <th>設定6</th>
+          <th>設1</th>
+          <th>設2</th>
+          <th>設3</th>
+          <th>設4</th>
+          <th>設5</th>
+          <th>設6</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>推測値</td>
-          <td id="res-1">16.6%</td>
-          <td id="res-2">16.6%</td>
-          <td id="res-3">16.6%</td>
-          <td id="res-4">16.6%</td>
-          <td id="res-5">16.6%</td>
-          <td id="res-6">16.6%</td>
+          <td id="res-1">16.7%</td>
+          <td id="res-2">16.7%</td>
+          <td id="res-3">16.7%</td>
+          <td id="res-4">16.7%</td>
+          <td id="res-5">16.7%</td>
+          <td id="res-6">16.7%</td>
         </tr>
       </tbody>
     </table>
   </div>
 
   <script>
-    // 確率テーブル設定 (設定1~6)
+    // 各項目のカウント状態保持
+    const counts = {};
+
+    // 確率データ (設定1〜6)
     const probs = {
-      // 通常時
       0: [605/65536, 612/65536, 619/65536, 625/65536, 634/65536, 651/65536],
       1: [514/65536, 519/65536, 526/65536, 528/65536, 531/65536, 535/65536],
-      2: [1/6.4, 1/6.3, 1/6.2, 1/6.0, 1/5.9, 1/5.9],
       3: [4/65536, 4/65536, 4/65536, 4/65536, 5/65536, 6/65536],
       4: [4/65536, 5/65536, 7/65536, 9/65536, 10/65536, 11/65536],
       5: [4/65536, 4/65536, 4/65536, 4/65536, 6/65536, 6/65536],
@@ -250,19 +361,15 @@
       11: [7/65536, 7/65536, 8/65536, 8/65536, 10/65536, 11/65536],
       12: [15/65536, 15/65536, 16/65536, 18/65536, 20/65536, 20/65536],
       13: [16/65536, 17/65536, 18/65536, 18/65536, 18/65536, 19/65536],
-      // ART中
       29: [945/65536, 992/65536, 1013/65536, 1073/65536, 1113/65536, 1130/65536],
       74: [1/18.70, 1/17.88, 1/17.04, 1/15.86, 1/15.09, 1/14.83],
-      // ボーナス中
       45: [330/65536, 360/65536, 390/65536, 420/65536, 480/65536, 600/65536],
       47: [1926/65536, 2066/65536, 2206/65536, 2346/65536, 2486/65536, 2626/65536],
       48: [84/65536, 94/65536, 104/65536, 214/65536, 276/65536, 370/65536],
-      // 演出
       19: [0.13333, 0.13333, 0.13333, 0.26666, 0.26666, 0.26666],
       20: [0, 0, 0, 0, 0.05002, 0.05002],
       21: [0, 0, 0, 0, 0, 0.05002],
       22: [0.01172, 0.01563, 0.01563, 0.01953, 0.01953, 0.02344],
-      // CZ即転落ボイス
       68: [0.40997, 0.40002, 0.40002, 0.40002, 0.40002, 0.40002],
       69: [0.32574, 0.14478, 0.21588, 0.14160, 0.20020, 0.12000],
       70: [0.21710, 0.21722, 0.14392, 0.21240, 0.13342, 0.17999],
@@ -270,19 +377,23 @@
       72: [0, 0, 0, 0, 0.13318, 0.14999]
     };
 
-    // 分母が必要な入力項目の対応付け
     const denomGroup = {
-      0: 'g_normal', 1: 'g_normal', 2: 'g_normal', 3: 'g_normal', 4: 'g_normal',
-      5: 'g_normal', 6: 'g_normal', 7: 'g_normal', 8: 'g_normal', 9: 'g_normal',
-      10: 'g_normal', 11: 'g_normal', 12: 'g_normal', 13: 'g_normal',
-      29: 'g_art', 74: 'g_art'
+      0: 'g_normal', 1: 'g_normal', 3: 'g_normal', 4: 'g_normal', 5: 'g_normal',
+      6: 'g_normal', 7: 'g_normal', 8: 'g_normal', 9: 'g_normal', 10: 'g_normal',
+      11: 'g_normal', 12: 'g_normal', 13: 'g_normal', 29: 'g_art', 74: 'g_art'
     };
 
-    function switchTab(tabName) {
+    function add(id, delta) {
+      counts[id] = Math.max(0, (counts[id] || 0) + delta);
+      document.getElementById(`val_${id}`).innerText = counts[id];
+      calculate();
+    }
+
+    function switchTab(tabName, evt) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       
-      event.target.classList.add('active');
+      evt.target.classList.add('active');
       document.getElementById(`tab-${tabName}`).classList.add('active');
     }
 
@@ -290,11 +401,10 @@
       const gNormal = parseFloat(document.getElementById('g_normal').value) || 0;
       const gArt = parseFloat(document.getElementById('g_art').value) || 0;
 
-      // 対数尤度 (Log-likelihood) で計算
       let logLikelihoods = [0, 0, 0, 0, 0, 0];
 
       for (let id in probs) {
-        const count = parseFloat(document.getElementById(`c_${id}`)?.value) || 0;
+        const count = counts[id] || 0;
         if (count <= 0) continue;
 
         const pArr = probs[id];
@@ -304,27 +414,24 @@
         for (let s = 0; s < 6; s++) {
           const p = pArr[s];
           if (p === 0) {
-            logLikelihoods[s] += -Infinity; // 出現不可な条件で出た場合は設定否定
+            logLikelihoods[s] += -Infinity;
           } else if (N && N > 0) {
-            // 二項分布 approximation: k * log(p) + (N-k) * log(1-p)
             logLikelihoods[s] += count * Math.log(p) + (N - count) * Math.log(1 - p);
           } else {
-            // 試行回数分母がない演出系は単発の対数確率で加算
             logLikelihoods[s] += count * Math.log(p);
           }
         }
       }
 
-      // 確率への変換 (Softmax / Normalization)
-      const maxLog = Math.max(...logLikelihoods.filter(v => v !== -Infinity));
-      
-      if (maxLog === -Infinity) {
+      const validLogs = logLikelihoods.filter(v => v !== -Infinity);
+      if (validLogs.length === 0) {
         for (let s = 1; s <= 6; s++) {
           document.getElementById(`res-${s}`).innerText = '16.7%';
         }
         return;
       }
 
+      const maxLog = Math.max(...validLogs);
       let expSums = logLikelihoods.map(v => v === -Infinity ? 0 : Math.exp(v - maxLog));
       const totalSum = expSums.reduce((a, b) => a + b, 0);
 
