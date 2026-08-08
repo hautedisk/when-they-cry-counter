@@ -303,7 +303,7 @@
     /* チャート容器 */
     .chart-container {
       position: relative;
-      height: 380px;
+      height: 280px;
       width: 100%;
     }
   </style>
@@ -443,8 +443,33 @@
       </div>
     </div>
 
+    <!-- 追加：1周目 単独キャラボイス -->
     <div class="card">
-      <div class="card-title">BB中 ビタ押し成功時ボイス（1周）</div>
+      <div class="card-title">BB中 ビタ押し成功時（1周目・単独キャラ）</div>
+      <div class="counter-grid">
+        <script>
+          const bitaSolo = [
+            {id: 59, title: "初回: 圭一"},
+            {id: 60, title: "初回: 魅音"},
+            {id: 61, title: "初回: 沙都子"},
+            {id: 62, title: "初回: 詩音"},
+            {id: 63, title: "初回: レナ"},
+            {id: 64, title: "初回: 梨花"}
+          ];
+          bitaSolo.forEach(item => {
+            document.write(`
+              <div class="counter-card" onclick="count(${item.id})">
+                <div class="counter-title">${item.title}</div>
+                <div class="counter-val" id="val_${item.id}">0</div>
+              </div>
+            `);
+          });
+        </script>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">BB中 ビタ押し成功時ボイス（1周目・複合/示唆）</div>
       <div class="counter-grid">
         <script>
           const bita1 = [
@@ -467,7 +492,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title">BB中 ビタ押し成功時ボイス（2周）</div>
+      <div class="card-title">BB中 ビタ押し成功時ボイス（2周目）</div>
       <div class="counter-grid">
         <script>
           const bita2 = [
@@ -569,13 +594,16 @@
   <!-- タブ4: 確率推移グラフ -->
   <div id="tab-graph" class="tab-content">
     <div class="card">
-      <div class="card-title">ART中 確率分母推移（実測値 vs 設定1〜6理論値）</div>
+      <div class="card-title">ART共通ベル 確率分母推移</div>
       <div class="chart-container">
-        <canvas id="rateChart"></canvas>
+        <canvas id="bellChart"></canvas>
       </div>
-      <div style="font-size: 0.75rem; color: #aaa; margin-top: 8px; text-align: center;">
-        実線：実測確率分母 / 破線：設定1〜6理論値<br>
-        緑系統：共通ベル / 赤〜黄系統：ARTハズレ
+    </div>
+
+    <div class="card">
+      <div class="card-title">ARTハズレ 確率分母推移</div>
+      <div class="chart-container">
+        <canvas id="hazureChart"></canvas>
       </div>
     </div>
   </div>
@@ -645,6 +673,15 @@
       56: [0.13333, 0.20000, 0.16000, 0.23204, 0.15359, 0.22403],
       57: [0, 0, 0, 0.01328, 0.01602, 0.01602],
       58: [0, 0, 0, 0, 0, 0.01060],
+
+      // 追加：初回単独キャラ（59〜64）
+      59: [0.82001, 0.73810, 0.75153, 0.70212, 0.75552, 0.70111], // 圭一
+      60: [0.02499, 0,       0.01999, 0.01999, 0.01999, 0.01999], // 魅音
+      61: [0.05499, 0.08301, 0.08350, 0.08401, 0.08450, 0.08502], // 沙都子
+      62: [0,       0.02499, 0.02499, 0.01999, 0.01999, 0.01999], // 詩音
+      63: [0.10001, 0.15390, 0.10001, 0.15390, 0.10001, 0.15390], // レナ
+      64: [0,       0,       0.01999, 0.01999, 0.01999, 0.01999], // 梨花
+
       67: [0, 0.008, 0.008, 0.010, 0.010, 0.013],
       68: [0.40997, 0.40002, 0.40002, 0.40002, 0.40002, 0.40002],
       69: [0.32574, 0.14478, 0.21588, 0.14160, 0.20020, 0.12000],
@@ -661,7 +698,6 @@
       45: 'g_bonus', 47: 'g_bonus'
     };
 
-    // 理論値分母（設定1〜6）
     const bellTheo = [18.70, 17.88, 17.04, 15.86, 15.09, 14.83];
     const hazureTheo = [69.35, 66.06, 64.69, 61.08, 58.88, 58.00];
 
@@ -823,7 +859,7 @@
       document.getElementById(`tab-${tabName}`).classList.add('active');
 
       if (tabName === 'graph') {
-        updateChart();
+        updateCharts();
       }
     }
 
@@ -889,12 +925,11 @@
       }
     }
 
-    // Chart.js 確率推移グラフ
-    let rateChart = null;
+    // Chart.js グラフ管理
+    let bellChart = null;
+    let hazureChart = null;
 
-    function updateChart() {
-      const ctx = document.getElementById('rateChart').getContext('2d');
-
+    function updateCharts() {
       let labels = [];
       let bellRates = [];
       let hazureRates = [];
@@ -914,55 +949,33 @@
         });
       }
 
-      // カラーパレット定義（視認性の高い配色）
-      // ベル（理論値）: 青緑〜濃緑のグラデーション破線
+      // カラーパレット
       const bellColors = [
-        'rgba(144, 238, 144, 0.6)', // 設1: 薄緑
-        'rgba(102, 205, 170, 0.7)', // 設2
-        'rgba(60, 179, 113, 0.8)',  // 設3
-        'rgba(46, 139, 87, 0.9)',   // 設4
-        'rgba(30, 130, 76, 1.0)',   // 設5
-        'rgba(0, 100, 0, 1.0)'      // 設6: 濃緑
+        'rgba(144, 238, 144, 0.6)', 'rgba(102, 205, 170, 0.7)', 'rgba(60, 179, 113, 0.8)',
+        'rgba(46, 139, 87, 0.9)', 'rgba(30, 130, 76, 1.0)', 'rgba(0, 100, 0, 1.0)'
       ];
 
-      // ハズレ（理論値）: ピンク〜濃赤紫のグラデーション破線
       const hazureColors = [
-        'rgba(255, 182, 193, 0.6)', // 設1: 薄ピンク
-        'rgba(255, 105, 180, 0.7)', // 設2
-        'rgba(255, 69, 0, 0.8)',   // 設3
-        'rgba(220, 20, 60, 0.9)',   // 設4
-        'rgba(178, 34, 34, 1.0)',   // 設5
-        'rgba(139, 0, 0, 1.0)'      // 設6: 濃赤
+        'rgba(255, 182, 193, 0.6)', 'rgba(255, 105, 180, 0.7)', 'rgba(255, 69, 0, 0.8)',
+        'rgba(220, 20, 60, 0.9)', 'rgba(178, 34, 34, 1.0)', 'rgba(139, 0, 0, 1.0)'
       ];
 
-      const datasets = [
-        // 実測値（太い実線）
-        {
-          label: '【実測】ベル分母',
-          data: bellRates,
-          borderColor: '#00ff66',
-          backgroundColor: '#00ff66',
-          borderWidth: 3.5,
-          tension: 0.1,
-          fill: false,
-          order: 1
-        },
-        {
-          label: '【実測】ハズレ分母',
-          data: hazureRates,
-          borderColor: '#ff3366',
-          backgroundColor: '#ff3366',
-          borderWidth: 3.5,
-          tension: 0.1,
-          fill: false,
-          order: 2
-        }
-      ];
+      // 1. ベル専用グラフ作成
+      const bellCtx = document.getElementById('bellChart').getContext('2d');
+      const bellDatasets = [{
+        label: '【実測】ベル分母',
+        data: bellRates,
+        borderColor: '#00ff66',
+        backgroundColor: '#00ff66',
+        borderWidth: 3.5,
+        tension: 0.1,
+        fill: false,
+        order: 1
+      }];
 
-      // ベル 設定1〜6の理論値ライン追加
       for (let s = 0; s < 6; s++) {
-        datasets.push({
-          label: `ベル 設${s + 1} (${bellTheo[s]})`,
+        bellDatasets.push({
+          label: `設${s + 1} (${bellTheo[s]})`,
           data: Array(labels.length).fill(bellTheo[s]),
           borderColor: bellColors[s],
           borderWidth: 1.5,
@@ -973,10 +986,25 @@
         });
       }
 
-      // ハズレ 設定1〜6の理論値ライン追加
+      if (bellChart) bellChart.destroy();
+      bellChart = new Chart(bellCtx, createChartOption(labels, bellDatasets, 'ベル確率分母 (1/X)'));
+
+      // 2. ハズレ専用グラフ作成
+      const hazureCtx = document.getElementById('hazureChart').getContext('2d');
+      const hazureDatasets = [{
+        label: '【実測】ハズレ分母',
+        data: hazureRates,
+        borderColor: '#ff3366',
+        backgroundColor: '#ff3366',
+        borderWidth: 3.5,
+        tension: 0.1,
+        fill: false,
+        order: 1
+      }];
+
       for (let s = 0; s < 6; s++) {
-        datasets.push({
-          label: `ハズレ 設${s + 1} (${hazureTheo[s]})`,
+        hazureDatasets.push({
+          label: `設${s + 1} (${hazureTheo[s]})`,
           data: Array(labels.length).fill(hazureTheo[s]),
           borderColor: hazureColors[s],
           borderWidth: 1.5,
@@ -987,27 +1015,20 @@
         });
       }
 
-      if (rateChart) {
-        rateChart.destroy();
-      }
+      if (hazureChart) hazureChart.destroy();
+      hazureChart = new Chart(hazureCtx, createChartOption(labels, hazureDatasets, 'ハズレ確率分母 (1/X)'));
+    }
 
-      rateChart = new Chart(ctx, {
+    function createChartOption(labels, datasets, yTitle) {
+      return {
         type: 'line',
-        data: {
-          labels: labels,
-          datasets: datasets
-        },
+        data: { labels: labels, datasets: datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              labels: {
-                color: '#ccc',
-                font: { size: 8 },
-                boxWidth: 10,
-                padding: 4
-              }
+              labels: { color: '#ccc', font: { size: 9 }, boxWidth: 10, padding: 4 }
             },
             tooltip: {
               callbacks: {
@@ -1020,22 +1041,17 @@
           },
           scales: {
             x: {
-              ticks: {
-                color: '#ccc',
-                font: { size: 10 },
-                maxTicksLimit: 6, // 横軸の目盛り数が多くなりすぎないよう自動調整
-                autoSkip: true
-              },
+              ticks: { color: '#ccc', font: { size: 10 }, maxTicksLimit: 6, autoSkip: true },
               grid: { color: '#2a2a35' }
             },
             y: {
               ticks: { color: '#ccc', font: { size: 10 } },
               grid: { color: '#2a2a35' },
-              title: { display: true, text: '確率分母 (1/X)', color: '#aaa', font: { size: 10 } }
+              title: { display: true, text: yTitle, color: '#aaa', font: { size: 10 } }
             }
           }
         }
-      });
+      };
     }
   </script>
 </body>
