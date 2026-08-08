@@ -178,12 +178,20 @@
       font-size: 0.85rem;
     }
 
-    /* カウンターカード */
+    /* 通常・ボーナス用 グリッド（2列） */
     .counter-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
+
+    /* ARTタブ専用 縦並びレイアウト（1列） */
+    .counter-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
     .counter-card {
       background: var(--btn-bg);
       border-radius: 8px;
@@ -214,18 +222,28 @@
       transform: scale(0.98);
     }
 
+    .counter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
     .counter-title {
-      font-size: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: bold;
       color: #ddd;
-      line-height: 1.25;
-      min-height: 2.4em;
       pointer-events: none;
     }
+    .counter-denom {
+      font-size: 0.8rem;
+      color: var(--accent);
+      font-weight: bold;
+    }
     .counter-val {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       font-weight: bold;
       text-align: center;
-      margin: 4px 0 0;
+      margin: 2px 0 6px;
       color: #fff;
       pointer-events: none;
     }
@@ -234,25 +252,28 @@
     /* 一括加算ボックス */
     .bulk-add-box {
       display: flex;
-      gap: 4px;
-      margin-top: 6px;
+      gap: 6px;
+      margin-top: 4px;
     }
     .bulk-add-box input {
       flex: 1;
       background: #000;
       border: 1px solid #444;
       color: #fff;
-      padding: 4px;
+      padding: 6px;
       border-radius: 4px;
       font-size: 0.85rem;
+      text-align: center;
     }
     .bulk-add-box button {
       background: var(--sub-primary);
       color: #fff;
       border: none;
-      padding: 4px 8px;
+      padding: 6px 12px;
       border-radius: 4px;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
     }
 
     /* 固定表示の設定推測結果バー */
@@ -279,10 +300,10 @@
     .result-table th { color: var(--sub-text); }
     .highlight { color: var(--success); font-weight: bold; font-size: 0.85rem; }
 
-    /* チャート */
+    /* チャート容器 */
     .chart-container {
       position: relative;
-      height: 250px;
+      height: 320px;
       width: 100%;
     }
   </style>
@@ -398,7 +419,6 @@
 
   <!-- タブ2: ボーナス中 -->
   <div id="tab-bonus" class="tab-content">
-    <!-- ボーナスゲーム数入力 -->
     <div class="card">
       <div class="game-input-group">
         <div class="game-row">
@@ -413,7 +433,6 @@
       </div>
     </div>
 
-    <!-- ボーナス中 小役カウント -->
     <div class="card">
       <div class="card-title">ボーナス中 小役・ハズレ</div>
       <div class="counter-grid">
@@ -500,7 +519,7 @@
     </div>
   </div>
 
-  <!-- タブ3: ART中 -->
+  <!-- タブ3: ART中 (縦並びレイアウト修正) -->
   <div id="tab-art" class="tab-content">
     <div class="card">
       <div class="card-title">ARTゲーム数 入力</div>
@@ -522,22 +541,31 @@
     </div>
 
     <div class="card">
-      <div class="card-title">ART中 小役カウント</div>
-      <div class="counter-grid">
-        <div class="counter-card" onclick="count(29)">
-          <div class="counter-title">ARTハズレ目</div>
-          <div class="counter-val" id="val_29">0</div>
-          <div class="bulk-add-box" onclick="event.stopPropagation();">
-            <input type="number" id="bulk_29" placeholder="数値" inputmode="numeric">
-            <button onclick="bulkAdd(29)">一括＋</button>
-          </div>
-        </div>
+      <div class="card-title">ART中 小役カウント (縦並び)</div>
+      <div class="counter-vertical">
+        <!-- ART共通ベル -->
         <div class="counter-card" onclick="count(74)">
-          <div class="counter-title">ART共通ベル</div>
+          <div class="counter-header">
+            <span class="counter-title">ART共通ベル</span>
+            <span class="counter-denom" id="denom_74">1/--.-</span>
+          </div>
           <div class="counter-val" id="val_74">0</div>
           <div class="bulk-add-box" onclick="event.stopPropagation();">
-            <input type="number" id="bulk_74" placeholder="数値" inputmode="numeric">
-            <button onclick="bulkAdd(74)">一括＋</button>
+            <input type="number" id="bulk_74" placeholder="一括入力" inputmode="numeric">
+            <button onclick="bulkAdd(74)">＋加算</button>
+          </div>
+        </div>
+
+        <!-- ARTハズレ目 -->
+        <div class="counter-card" onclick="count(29)">
+          <div class="counter-header">
+            <span class="counter-title">ARTハズレ目</span>
+            <span class="counter-denom" id="denom_29">1/--.-</span>
+          </div>
+          <div class="counter-val" id="val_29">0</div>
+          <div class="bulk-add-box" onclick="event.stopPropagation();">
+            <input type="number" id="bulk_29" placeholder="一括入力" inputmode="numeric">
+            <button onclick="bulkAdd(29)">＋加算</button>
           </div>
         </div>
       </div>
@@ -547,9 +575,13 @@
   <!-- タブ4: 確率推移グラフ -->
   <div id="tab-graph" class="tab-content">
     <div class="card">
-      <div class="card-title">主要要素の設定別理論値 vs 実測値</div>
+      <div class="card-title">ART中 ベル・ハズレ確率分母推移（収束グラフ）</div>
       <div class="chart-container">
         <canvas id="rateChart"></canvas>
+      </div>
+      <div style="font-size: 0.75rem; color: #aaa; margin-top: 8px; text-align: center;">
+        ※横軸: ART累計ゲーム数(G) / 縦軸: 確率分母(1/X)<br>
+        点線: 設定1〜6理論値 (ベル:18.7〜14.8 / ハズレ:69.3〜58.0)
       </div>
     </div>
   </div>
@@ -584,6 +616,7 @@
   <script>
     let currentMode = 'add';
     let counts = {};
+    let artHistory = []; // 推移グラフ用の履歴データ [{g, bell, hazure}]
 
     const probs = {
       0: [605/65536, 612/65536, 619/65536, 625/65536, 634/65536, 651/65536],
@@ -634,14 +667,45 @@
       45: 'g_bonus', 47: 'g_bonus'
     };
 
+    // 理論値分母（設定1〜6）
+    const bellTheo = [18.70, 17.88, 17.04, 15.86, 15.09, 14.83];
+    const hazureTheo = [69.35, 66.06, 64.69, 61.08, 58.88, 58.00];
+
     // 読み込み時：自動復元
     window.onload = function() {
       loadData();
     };
 
+    function recordArtPoint() {
+      const gArt = parseFloat(document.getElementById('g_art').value) || 0;
+      const bell = counts[74] || 0;
+      const hazure = counts[29] || 0;
+
+      if (gArt > 0) {
+        const last = artHistory[artHistory.length - 1];
+        if (!last || last.g !== gArt || last.bell !== bell || last.hazure !== hazure) {
+          artHistory.push({ g: gArt, bell: bell, hazure: hazure });
+        }
+      }
+    }
+
     function saveAndCalc() {
+      recordArtPoint();
       saveData();
       calculate();
+      updateDenomDisplay();
+    }
+
+    function updateDenomDisplay() {
+      const gArt = parseFloat(document.getElementById('g_art').value) || 0;
+      const bell = counts[74] || 0;
+      const hazure = counts[29] || 0;
+
+      const bellElem = document.getElementById('denom_74');
+      const hazureElem = document.getElementById('denom_29');
+
+      if (bellElem) bellElem.innerText = (bell > 0 && gArt > 0) ? `1/${(gArt / bell).toFixed(1)}` : '1/--.-';
+      if (hazureElem) hazureElem.innerText = (hazure > 0 && gArt > 0) ? `1/${(gArt / hazure).toFixed(1)}` : '1/--.-';
     }
 
     // ローカルストレージに保存
@@ -650,7 +714,8 @@
         counts: counts,
         g_normal: document.getElementById('g_normal').value,
         g_bonus: document.getElementById('g_bonus') ? document.getElementById('g_bonus').value : 0,
-        g_art: document.getElementById('g_art').value
+        g_art: document.getElementById('g_art').value,
+        artHistory: artHistory
       };
       localStorage.setItem('higurashi_counter_data', JSON.stringify(data));
     }
@@ -662,6 +727,7 @@
       try {
         const data = JSON.parse(saved);
         counts = data.counts || {};
+        artHistory = data.artHistory || [];
         document.getElementById('g_normal').value = data.g_normal || 0;
         if (document.getElementById('g_bonus')) {
           document.getElementById('g_bonus').value = data.g_bonus || 0;
@@ -674,6 +740,7 @@
           if (el) el.innerText = counts[id];
         }
         calculate();
+        updateDenomDisplay();
       } catch(e) {
         console.error("復元失敗:", e);
       }
@@ -684,6 +751,7 @@
       if (confirm("カウントしたデータをすべてクリアしますか？")) {
         localStorage.removeItem('higurashi_counter_data');
         counts = {};
+        artHistory = [];
         document.getElementById('g_normal').value = 0;
         if (document.getElementById('g_bonus')) {
           document.getElementById('g_bonus').value = 0;
@@ -691,6 +759,7 @@
         document.getElementById('g_art').value = 0;
         document.querySelectorAll('.counter-val').forEach(el => el.innerText = 0);
         calculate();
+        updateDenomDisplay();
       }
     }
 
@@ -839,41 +908,90 @@
       }
     }
 
-    // Chart.js グラフ
+    // Chart.js 確率推移グラフ（収束スランプグラフ風）
     let rateChart = null;
 
     function updateChart() {
-      const gNormal = parseFloat(document.getElementById('g_normal').value) || 0;
-      const gArt = parseFloat(document.getElementById('g_art').value) || 0;
-
-      const スイカRate = (counts[0] > 0 && gNormal > 0) ? (gNormal / counts[0]).toFixed(1) : 0;
-      const artハズレRate = (counts[29] > 0 && gArt > 0) ? (gArt / counts[29]).toFixed(1) : 0;
-
       const ctx = document.getElementById('rateChart').getContext('2d');
+
+      // 履歴からプロット用ラベルと実測値を生成
+      let labels = [];
+      let bellRates = [];
+      let hazureRates = [];
+
+      if (artHistory.length === 0) {
+        const currentG = parseFloat(document.getElementById('g_art').value) || 0;
+        const currentBell = counts[74] || 0;
+        const currentHazure = counts[29] || 0;
+        labels = [currentG + 'G'];
+        bellRates = [currentBell > 0 ? (currentG / currentBell) : null];
+        hazureRates = [currentHazure > 0 ? (currentG / currentHazure) : null];
+      } else {
+        artHistory.forEach(item => {
+          labels.push(item.g + 'G');
+          bellRates.push(item.bell > 0 ? (item.g / item.bell) : null);
+          hazureRates.push(item.hazure > 0 ? (item.g / item.hazure) : null);
+        });
+      }
 
       if (rateChart) {
         rateChart.destroy();
       }
 
       rateChart = new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
-          labels: ['スイカ(1/x)', 'ARTハズレ(1/x)'],
+          labels: labels,
           datasets: [
             {
-              label: '実測値',
-              data: [スイカRate, artハズレRate],
-              backgroundColor: '#5bc0de'
+              label: 'ベル分母 (実測)',
+              data: bellRates,
+              borderColor: '#5cb85c',
+              backgroundColor: '#5cb85c',
+              borderWidth: 3,
+              tension: 0.2,
+              fill: false
             },
             {
-              label: '設定1理論値',
-              data: [108.3, 69.3],
-              backgroundColor: '#d9534f'
+              label: 'ハズレ分母 (実測)',
+              data: hazureRates,
+              borderColor: '#d9534f',
+              backgroundColor: '#d9534f',
+              borderWidth: 3,
+              tension: 0.2,
+              fill: false
             },
             {
-              label: '設定6理論値',
-              data: [100.6, 58.0],
-              backgroundColor: '#5cb85c'
+              label: 'ベル 設1理論(18.7)',
+              data: Array(labels.length).fill(bellTheo[0]),
+              borderColor: 'rgba(92, 184, 92, 0.4)',
+              borderDash: [4, 4],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'ベル 設6理論(14.8)',
+              data: Array(labels.length).fill(bellTheo[5]),
+              borderColor: 'rgba(92, 184, 92, 0.8)',
+              borderDash: [2, 2],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'ハズレ 設1理論(69.3)',
+              data: Array(labels.length).fill(hazureTheo[0]),
+              borderColor: 'rgba(217, 83, 79, 0.4)',
+              borderDash: [4, 4],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'ハズレ 設6理論(58.0)',
+              data: Array(labels.length).fill(hazureTheo[5]),
+              borderColor: 'rgba(217, 83, 79, 0.8)',
+              borderDash: [2, 2],
+              pointRadius: 0,
+              fill: false
             }
           ]
         },
@@ -881,11 +999,28 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { labels: { color: '#ccc', font: { size: 10 } } }
+            legend: {
+              labels: { color: '#ccc', font: { size: 9 }, boxWidth: 12 }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const val = context.raw;
+                  return val ? `${context.dataset.label}: 1/${parseFloat(val).toFixed(1)}` : '';
+                }
+              }
+            }
           },
           scales: {
-            x: { ticks: { color: '#ccc' } },
-            y: { ticks: { color: '#ccc' }, title: { display: true, text: '確率分母', color: '#aaa' } }
+            x: {
+              ticks: { color: '#ccc', font: { size: 10 } },
+              grid: { color: '#333' }
+            },
+            y: {
+              ticks: { color: '#ccc', font: { size: 10 } },
+              grid: { color: '#333' },
+              title: { display: true, text: '確率分母 (1/X)', color: '#aaa', font: { size: 10 } }
+            }
           }
         }
       });
